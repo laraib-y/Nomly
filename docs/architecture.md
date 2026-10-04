@@ -1,6 +1,6 @@
-# DineOff architecture
+# Nomly architecture
 
-DineOff is one Next.js app and one FastAPI app. They run as separate processes. There is no Docker, message bus, or extra service.
+Nomly is one Next.js app and one FastAPI app. They run as separate processes. There is no Docker, message bus, or extra service.
 
 ```text
 Browser
@@ -17,8 +17,8 @@ MySQL or TiDB Cloud
 
 ## Request path
 
-1. The host describes dinner. `SessionService` asks `AIService` for a `DinnerIntent`.
-2. Pydantic validates that intent. The raw model text is never interpolated into SQL.
+1. The host describes dinner in plain language. `POST /api/sessions` asks `AIService` for a `DinnerIntent`.
+2. Pydantic validates that intent. The raw model text is never interpolated into SQL. Explicit location and group size from the form replace anything the parser inferred for those fields.
 3. `RestaurantSearchService` asks `RestaurantProvider` for candidates, then normalizes, deduplicates, applies hard constraints, ranks, and stores one diverse deck of up to 15 restaurants. Swiping reads that stored deck.
 4. Friends join with a room code and a nickname. There are no accounts.
 5. The host starts the dinner. Connected browsers receive `dinner_started` and open the same deck.
@@ -29,9 +29,49 @@ MySQL or TiDB Cloud
 
 `AIService`
 
-- `GeminiAIService` calls Gemini and validates JSON into `DinnerIntent`.
-- `MockAIService` is a deterministic keyword parser.
-- If the Gemini key is missing, or the call fails, the mock parser is used.
+Gemini only turns the description into structured search intent. It does not search Geoapify, name restaurants, rank a deck, or decide the group match.
+
+```text
+User's natural-language request
+        ↓
+GeminiAIService or MockAIService
+        ↓
+DinnerIntent, validated by Pydantic
+        ↓
+Restaurant Search Service
+        ↓
+Geoapify or the mock catalog
+        ↓
+Restaurant deck
+        ↓
+Phase 4 group matcher
+```
+
+- `GeminiAIService` calls Gemini with a backend `GEMINI_API_KEY` and requires JSON that validates as `DinnerIntent`.
+- `MockAIService` is a deterministic parser. Tests and local runs use it whenever the key is missing.
+- A timeout, rate limit, network error, malformed JSON, or validation failure is logged on the server and parsed again with `MockAIService`. The API response does not include the provider error.
+- Missing details stay null or empty. A radius is stored only when the request states a distance, in meters. Restaurant search uses 5000 meters when radius is null.
+- Dietary labels are preferences, not an allergy or safety guarantee.
+
+`DinnerIntent` carries `group_size`, `location`, `radius`, `cuisines`, `price_level`, `vibe`, and `dietary_preferences`. Group size is a planning hint. The match still uses the people who actually joined.
+
+Example:
+
+```text
+We're five students looking for something cheap around Burnaby, preferably Japanese or Korean, and somewhere casual.
+```
+
+```json
+{
+  "group_size": 5,
+  "location": "Burnaby",
+  "radius": null,
+  "cuisines": ["Japanese", "Korean"],
+  "price_level": 1,
+  "vibe": "casual",
+  "dietary_preferences": []
+}
+```
 
 `RestaurantProvider`
 
@@ -63,8 +103,6 @@ Diversity Selection
 - Hard filters drop a known price above the budget and, when a center point exists, a place outside the radius. Missing price or coordinates are kept. Dietary words only affect ranking when the provider already labeled the place, and they are not an allergy or safety guarantee.
 - Ranking is a weighted score, not the group matcher: cuisine 40, price 25, location 15, rating 15, vibe or category 5. Diversity then spreads cuisines inside that ranked set.
 - The Geoapify key stays on the server. Logs redact `apiKey`.
-
-`DinnerIntent` carries `group_size`, `location`, `radius`, `cuisines`, `price_level`, `vibe`, and `dietary_preferences`. Group size is a planning hint. The match still uses the people who actually joined.
 
 `MatchingService`
 

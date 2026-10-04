@@ -54,7 +54,10 @@ export default function CreatePage() {
           />
         </label>
         <label className="block">
-          <span className="text-sm text-ink-soft">Dinner notes</span>
+          <span className="text-sm text-ink-soft">Describe the night</span>
+          <p className="mt-1 text-sm text-ink-soft">
+            Plain language is enough. Location and group size below are used as you type them.
+          </p>
           <textarea
             required
             minLength={3}

@@ -1,10 +1,10 @@
-# DineOff
+# Nomly
 
 Stop arguing. Let the group decide.
 
-DineOff is a small multiplayer dinner picker. A host describes the night, friends join a room, everyone swipes the same restaurants in private, and a Python matching engine ranks the places the group actually agrees on.
+Nomly is a small multiplayer dinner picker. A host describes the night, friends join a room, everyone swipes the same restaurants in private, and a Python matching engine ranks the places the group actually agrees on.
 
-DineOff does not require Docker for local development.
+Nomly does not require Docker for local development.
 
 ## Problem
 
@@ -12,7 +12,7 @@ Groups get stuck debating restaurants. One person likes the idea, someone else h
 
 ## Solution
 
-Everyone swipes independently on one shared list. DineOff does not show individual choices during the round. When the group is finished, it ranks restaurants by how many people liked them.
+Everyone swipes independently on one shared list. Nomly does not show individual choices during the round. When the group is finished, it ranks restaurants by how many people liked them.
 
 ## MVP flow
 
@@ -35,6 +35,14 @@ Group Match
 ```
 
 You can run this whole path with no Gemini or Geoapify key. The API falls back to `MockAIService` and `MockRestaurantProvider`.
+
+Gemini reads the dinner description and returns a `DinnerIntent`: group size, location, radius, cuisines, price level, vibe, and dietary preferences. It does not look up restaurants. Phase 2 search does that. If Gemini is unavailable or returns invalid JSON, the deterministic parser is used and the room is still created. Set `GEMINI_API_KEY` in the backend `.env` to try a live call. The test suite never calls Gemini.
+
+```text
+We're five students looking for something cheap around Burnaby, preferably Japanese or Korean, and somewhere casual.
+```
+
+That request becomes Japanese and Korean, Burnaby, a low price level, a casual vibe, and a group size of five. Fields the user did not mention stay empty. A location or group size entered in the form overrides the description.
 
 ## Tech stack
 
@@ -162,7 +170,7 @@ From `backend`, with the virtual environment active:
 python -m pytest
 ```
 
-The tests cover sessions, room codes, joining, host authorization, restaurant normalization, deduplication, relevance ranking, deck diversity, mock and Geoapify fallbacks, the mock AI parser, Gemini response validation, swipes, the 80% match case, ranking ties, and WebSocket events.
+The tests cover sessions, room codes, joining, host authorization, restaurant normalization, deduplication, relevance ranking, deck diversity, mock and Geoapify fallbacks, dinner-intent extraction, Gemini response validation, Gemini failure fallback, swipes, the 80% match case, ranking ties, and WebSocket events. They do not call the live Gemini API.
 
 ## Architecture
 

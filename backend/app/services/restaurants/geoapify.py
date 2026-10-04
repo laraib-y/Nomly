@@ -3,7 +3,7 @@ import re
 
 import httpx
 
-from app.schemas.ai import DinnerIntent
+from app.schemas.ai import DinnerIntent, search_radius_meters
 from app.schemas.restaurant import RestaurantCandidate
 from app.services.restaurants.base import RestaurantProvider, RestaurantProviderError
 from app.services.restaurants.mock import MockRestaurantProvider
@@ -95,9 +95,10 @@ class GeoapifyRestaurantProvider(RestaurantProvider):
         client = self._client or httpx.Client(timeout=8.0)
         try:
             latitude, longitude = self._geocode(client, intent.location or "Vancouver")
+            radius = search_radius_meters(intent)
             features: list[dict] = []
             for categories in category_groups(intent):
-                batch = self._places(client, latitude, longitude, intent.radius, categories, limit=20)
+                batch = self._places(client, latitude, longitude, radius, categories, limit=20)
                 features = _merge_features(features, batch)
                 if len(features) >= 40:
                     break
@@ -116,7 +117,7 @@ class GeoapifyRestaurantProvider(RestaurantProvider):
             if candidate is None or candidate.external_id in seen:
                 continue
             point = valid_coordinate(candidate.latitude, candidate.longitude)
-            if point is not None and distance_meters(latitude, longitude, point[0], point[1]) > intent.radius:
+            if point is not None and distance_meters(latitude, longitude, point[0], point[1]) > radius:
                 continue
             seen.add(candidate.external_id)
             restaurants.append(candidate)

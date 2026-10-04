@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session as DbSession
 from app.core.exceptions import BadRequestError, ConflictError, ForbiddenError, NotFoundError
 from app.core.time import utcnow
 from app.models import Participant, Restaurant, Session, SessionRestaurant, Swipe
-from app.schemas.ai import DinnerIntent
+from app.schemas.ai import DinnerIntent, apply_explicit_fields
 from app.schemas.restaurant import RestaurantCandidate, RestaurantRead
 from app.schemas.session import (
     CreateSessionRequest,
@@ -65,14 +65,11 @@ class SessionService:
         location = payload.location.strip() if payload.location and payload.location.strip() else None
         # group_size is only a planning hint. Ranking uses the people who actually join.
 
-        intent = self._parse_intent(description, location)
-        updates: dict[str, object] = {}
-        if location:
-            updates["location"] = location
-        if payload.group_size is not None:
-            updates["group_size"] = payload.group_size
-        if updates:
-            intent = intent.model_copy(update=updates)
+        intent = apply_explicit_fields(
+            self._parse_intent(description, location),
+            location=location,
+            group_size=payload.group_size,
+        )
 
         candidates = RestaurantSearchService(self.restaurants).build_deck(intent)
 
