@@ -45,32 +45,25 @@ export function FoodPhoto({
   );
 }
 
-/** Rating and price chips with explicit fallbacks. */
+/** Rating and price chips, shown only when the provider supplies them. */
 export function RatingPrice({ restaurant }: { restaurant: Restaurantish }) {
   const info = describeRestaurant(restaurant);
+  if (!info.rating && !info.price) return null;
   const chip = "rounded-full border border-line bg-paper px-3 py-0.5";
   return (
     <div className="flex flex-wrap gap-2 text-sm">
-      <span className={chip}>
-        {info.rating ? (
-          <>
-            <span aria-hidden="true">⭐</span> {info.rating}
-            <span className="sr-only"> out of 5</span>
-          </>
-        ) : (
-          <>Rating · {NOT_AVAILABLE}</>
-        )}
-      </span>
-      <span className={chip}>
-        {info.price ? (
-          <>
-            {info.price}
-            <span className="sr-only"> price range</span>
-          </>
-        ) : (
-          <>Price range · {NOT_AVAILABLE}</>
-        )}
-      </span>
+      {info.rating ? (
+        <span className={chip}>
+          <span aria-hidden="true">⭐</span> {info.rating}
+          <span className="sr-only"> out of 5</span>
+        </span>
+      ) : null}
+      {info.price ? (
+        <span className={chip}>
+          {info.price}
+          <span className="sr-only"> price range</span>
+        </span>
+      ) : null}
     </div>
   );
 }
