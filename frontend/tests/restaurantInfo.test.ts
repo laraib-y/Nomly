@@ -201,6 +201,12 @@ test("frontend source never references provider keys or calls Geoapify directly"
   }
 });
 
+test("missing rating and price are hidden instead of showing fallback text", () => {
+  const text = readFileSync("components/RestaurantInfo.tsx", "utf8");
+  assert.match(text, /if \(!info\.rating && !info\.price\) return null;/);
+  assert.doesNotMatch(text, /Rating · |Price range · /);
+});
+
 test("restaurant cards no longer use the crocodile placeholder", () => {
   for (const file of ["components/RestaurantCard.tsx", "components/RestaurantInfo.tsx", "components/ResultsRoom.tsx"]) {
     assert.doesNotMatch(readFileSync(file, "utf8"), /IMG_8293/, file);
