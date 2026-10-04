@@ -31,7 +31,7 @@ export function LoadingScreen({ destination }: { destination: string }) {
         src="/assets/chomp.gif"
         alt="Nomly loading animation"
         width={2388}
-        height={500}
+        height={510}
         unoptimized
         className="h-auto w-full max-w-xl"
 

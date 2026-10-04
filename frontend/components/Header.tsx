@@ -16,9 +16,11 @@ export function Header() {
 
   return (
     <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-6">
-      <Link href="/" className="flex items-center gap-2 font-serif text-2xl tracking-tight">
-        <Image src="/assets/chef_hat.webp" alt="" width={36} height={36} />
-        Nomly
+      <Link href="/" aria-label="Nomly home" className="flex items-end gap-0.5 justify-self-start sm:gap-1">
+        
+        <img src="/assets/nomly.webp" alt="Nomly" className="h-9 w-auto sm:h-11" />
+      
+        <img src="/assets/chef_hat.webp" alt="" aria-hidden="true" className="mb-2.5 h-6 w-auto rotate-[8deg] sm:mb-3.5 sm:h-8" />
       </Link>
       {loadingScreen ? null : (
         <nav className="flex items-center gap-2 text-sm" aria-label="Main">
