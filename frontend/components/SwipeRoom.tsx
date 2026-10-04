@@ -152,15 +152,15 @@ export function SwipeRoom({ roomCode }: { roomCode: string }) {
             {confirming === "veto" ? "This uses your one Veto for this dinner." : "This uses your one Super Like."}
           </p>
           <div className="mt-4 flex justify-center gap-3">
-            <button type="button" onClick={() => setConfirming(null)} className="rounded-full border border-line px-4 py-2 text-sm">
+              <button type="button" onClick={() => setConfirming(null)} className="button-secondary rounded-full px-4 py-2 text-sm">
               Cancel
             </button>
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() => void choose(confirming)}
-              className="rounded-full bg-ink px-4 py-2 text-sm text-paper disabled:opacity-50"
-            >
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => void choose(confirming)}
+                className="button-primary rounded-full px-4 py-2 text-sm disabled:opacity-50"
+              >
               {confirming === "veto" ? "Veto" : "Super Like"}
             </button>
           </div>

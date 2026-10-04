@@ -10,10 +10,10 @@ export function RestaurantCard({ restaurant }: { restaurant: Restaurant }) {
   const showImage = Boolean(restaurant.image_url) && !imageFailed;
   const price = formatPrice(restaurant.price);
   const rating = restaurant.rating != null ? restaurant.rating.toFixed(1) : null;
-  const chip = "rounded-full border-2 border-ink px-3 py-0.5";
+  const chip = "rounded-full border border-ink/15 px-3 py-0.5 text-ink-soft";
 
   return (
-    <article className="flex aspect-square w-full flex-col overflow-hidden rounded-3xl bg-[#fffaf3] shadow-[0_10px_30px_-14px_rgba(36,28,24,0.28)]">
+    <article className="flex aspect-square w-full flex-col overflow-hidden rounded-3xl border border-ink/10 bg-card shadow-[0_8px_24px_-12px_rgba(36,28,24,0.18)]">
       <div
         className="relative min-h-0 flex-1 border-b-[3px] border-ink"
         style={{ background: cuisineWash(restaurant.cuisine) }}
@@ -38,9 +38,9 @@ export function RestaurantCard({ restaurant }: { restaurant: Restaurant }) {
       <div className="px-5 pb-4 pt-3">
         <h2 className="line-clamp-2 text-3xl leading-tight">{restaurant.name}</h2>
         <div className="mt-2 flex flex-wrap gap-2 text-sm">
-          {restaurant.cuisine ? <span className={`${chip} bg-[#b5c384]`}>{restaurant.cuisine}</span> : null}
-          {price ? <span className={`${chip} bg-[#f3ddb0]`}>{price}</span> : null}
-          {rating ? <span className={`${chip} bg-white`}>★ {rating}</span> : null}
+          {restaurant.cuisine ? <span className={`${chip} bg-croc`}>{restaurant.cuisine}</span> : null}
+          {price ? <span className={`${chip} bg-paper-deep`}>{price}</span> : null}
+          {rating ? <span className={`${chip} bg-card`}>★ {rating}</span> : null}
         </div>
         {restaurant.description ? (
           <p className="mt-2 line-clamp-2 text-sm leading-snug text-ink-soft">{restaurant.description}</p>

@@ -62,8 +62,8 @@ export function ResultsRoom({ roomCode }: { roomCode: string }) {
   return (
     <section className="mx-auto max-w-2xl pt-4">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-        <p className="text-sm uppercase tracking-[0.22em] text-chili">Group match</p>
-        <article className="mt-4 overflow-hidden rounded-[32px] border border-line bg-card shadow-card">
+        <p className="text-sm uppercase tracking-[0.22em] text-croc-dark">Group match</p>
+        <article className="mt-4 overflow-hidden rounded-3xl border border-line bg-card shadow-card">
           <div className="px-6 py-8 sm:px-10" style={{ background: cuisineWash(top.cuisine) }}>
             <p className="text-xs uppercase tracking-[0.18em]">{top.cuisine || "Restaurant"}</p>
             <h1 className="mt-3 font-serif text-5xl leading-none sm:text-6xl">{top.name}</h1>
@@ -84,7 +84,7 @@ export function ResultsRoom({ roomCode }: { roomCode: string }) {
             <button
               type="button"
               onClick={() => setShowWhy((value) => !value)}
-              className="rounded-full border border-line px-4 py-2 text-sm"
+              className="button-secondary rounded-full px-4 py-2 text-sm"
             >
               Why this one?
             </button>
