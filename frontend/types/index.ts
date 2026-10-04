@@ -45,6 +45,8 @@ export type Restaurant = {
   latitude: number | null;
   longitude: number | null;
   address: string | null;
+  phone?: string | null;
+  website?: string | null;
   image_url: string | null;
   source: string;
   position: number;
@@ -59,6 +61,10 @@ export type RestaurantResult = {
   price: number | null;
   rating: number | null;
   address: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  phone?: string | null;
+  website?: string | null;
   image_url: string | null;
   likes: number;
   super_likes?: number;

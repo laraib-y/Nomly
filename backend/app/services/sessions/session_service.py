@@ -179,6 +179,8 @@ class SessionService:
                     latitude=place.latitude,
                     longitude=place.longitude,
                     address=place.address,
+                    phone=place.phone,
+                    website=place.website,
                     image_url=place.image_url,
                     source=place.source,
                     position=link.position,
@@ -316,13 +318,20 @@ class SessionService:
                     latitude=candidate.latitude,
                     longitude=candidate.longitude,
                     address=candidate.address,
+                    phone=candidate.phone,
+                    website=candidate.website,
                     image_url=candidate.image_url,
                     source=candidate.source,
                 )
                 self.db.add(restaurant)
                 self.db.flush()
-            elif encoded_categories and not restaurant.categories:
-                restaurant.categories = encoded_categories
+            else:
+                if encoded_categories and not restaurant.categories:
+                    restaurant.categories = encoded_categories
+                if candidate.phone and not restaurant.phone:
+                    restaurant.phone = candidate.phone
+                if candidate.website and not restaurant.website:
+                    restaurant.website = candidate.website
             if sync_semantic_source(restaurant, candidate):
                 clear_stored_vector(self.db, restaurant.id)
             self.db.add(
@@ -373,7 +382,8 @@ class SessionService:
             sum(1 for item in ranked if item.vetoes),
             ranked[0].restaurant_id if ranked else None,
         )
-        results = [_to_result(item) for item in ranked]
+        places = {link.restaurant.id: link.restaurant for link in links}
+        results = [_to_result(item, places.get(item.restaurant_id)) for item in ranked]
         return ResultsResponse(
             room_code=dinner.room_code,
             status="completed",
@@ -554,7 +564,7 @@ def clean_nickname(value: str) -> str:
     return cleaned
 
 
-def _to_result(item) -> RestaurantResult:
+def _to_result(item, place: Restaurant | None = None) -> RestaurantResult:
     return RestaurantResult(
         restaurant_id=item.restaurant_id,
         name=item.name,
@@ -563,6 +573,10 @@ def _to_result(item) -> RestaurantResult:
         price=item.price,
         rating=item.rating,
         address=item.address,
+        latitude=place.latitude if place else None,
+        longitude=place.longitude if place else None,
+        phone=place.phone if place else None,
+        website=place.website if place else None,
         image_url=item.image_url,
         likes=item.likes,
         super_likes=item.super_likes,

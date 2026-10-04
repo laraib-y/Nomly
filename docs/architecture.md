@@ -169,6 +169,14 @@ Tests: `backend/tests/test_result_transparency.py` and `frontend/tests/results.t
 
 The swipe socket still sends `swipe_progress`, `all_completed`, and `results_ready`. Progress adds how many super likes and vetoes have been used, not who used them.
 
+### Phase 7.1: Restaurant information cards
+
+Cards show only what the provider gave us. Geoapify supplies the name, a formatted address, coordinates, categories (which the pipeline turns into `cuisine`), and, for many places, `contact.phone` and `website`. In a 40-place Burnaby sample, every place had an address and coordinates, about two thirds had a phone or website, and none had a rating, price level, or photo. `phone` and `website` are new nullable columns on `restaurants` (migration `0005_restaurant_contact`). The backend keeps a website or image only if it is a plain `http(s)` URL, and a phone only if it has 7 to 15 digits. The frontend checks URLs again before rendering a link.
+
+Any missing field shows "Not available for now". Price is shown only for a provider level from 1 to 4, and rating only for a provider value from 0 to 5. Nothing is inferred from the cuisine or the restaurant name. The map link uses the restaurant's own coordinates, never the user's.
+
+Images follow this order: a provider photo, then a cuisine photo from `frontend/public/food`, then a generic food photo. The cuisine comes from the pipeline's `cuisine` and `categories`, not from the restaurant name. When a cuisine has more than one photo, the restaurant id picks one, so a place keeps the same picture on the deck and on results. Cuisine and generic photos are labelled "Representative photo". The code is in `frontend/lib/foodImages.ts` and `frontend/lib/format.ts`.
+
 ## Realtime
 
 `/ws/sessions/{room_code}` sends:

@@ -14,6 +14,8 @@ class RestaurantCandidate(BaseModel):
     latitude: float | None = None
     longitude: float | None = None
     address: str | None = None
+    phone: str | None = Field(default=None, max_length=40)
+    website: str | None = Field(default=None, max_length=512)
     image_url: str | None = None
     source: str = Field(min_length=1, max_length=32)
 
@@ -29,6 +31,8 @@ class RestaurantRead(BaseModel):
     latitude: float | None
     longitude: float | None
     address: str | None
+    phone: str | None = None
+    website: str | None = None
     image_url: str | None
     source: str
     position: int
