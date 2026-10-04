@@ -4,7 +4,8 @@ import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { cuisineWash, formatPrice, formatRating } from "@/lib/format";
+import { ContactDetails, FoodPhoto, RatingPrice } from "@/components/RestaurantInfo";
+import { NOT_AVAILABLE, cuisineWash, formatCuisine } from "@/lib/format";
 import { getResults, speakConcierge } from "@/lib/api";
 import { afterSound, isSoundEnabled, playSoundOnce, playSpeech } from "@/lib/audio";
 import { SATISFACTION_HINT, SATISFACTION_LABEL, describeResult, whyThisWon } from "@/lib/results";
@@ -107,9 +108,10 @@ export function ResultsRoom({ roomCode }: { roomCode: string }) {
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
         <p className="text-sm uppercase tracking-[0.22em] text-chili">Your group&apos;s pick</p>
         <article className="mt-4 overflow-hidden rounded-[32px] border border-line bg-card shadow-card">
+          <FoodPhoto restaurant={top} className="aspect-[16/9] w-full" />
           <div className="px-6 py-8 sm:px-10" style={{ background: cuisineWash(top.cuisine) }}>
-            <p className="text-xs uppercase tracking-[0.18em]">{top.cuisine || "Restaurant"}</p>
-            <h1 className="mt-3 font-serif text-5xl leading-none sm:text-6xl">{top.name}</h1>
+            <p className="text-xs uppercase tracking-[0.18em]">{formatCuisine(top.cuisine) ?? `Cuisine · ${NOT_AVAILABLE}`}</p>
+            <h1 className="mt-3 break-words font-serif text-5xl leading-none sm:text-6xl">{top.name}</h1>
           </div>
           <div className="space-y-4 px-6 py-8 sm:px-10">
             {view.badge ? (
@@ -133,11 +135,10 @@ export function ResultsRoom({ roomCode }: { roomCode: string }) {
               </p>
             ) : null}
             {view.eligibility ? <p className="text-sm text-chili">{view.eligibility}</p> : null}
-            {[formatPrice(top.price), formatRating(top.rating), top.address].filter(Boolean).length > 0 ? (
-              <p className="text-sm text-ink-soft">
-                {[formatPrice(top.price), formatRating(top.rating), top.address].filter(Boolean).join(" · ")}
-              </p>
-            ) : null}
+            <div className="space-y-3 border-t border-line pt-4">
+              <RatingPrice restaurant={top} />
+              <ContactDetails restaurant={top} />
+            </div>
             <div className="border-t border-line pt-4">
               <h2 className="font-serif text-2xl">Why this won</h2>
               <p className="mt-2 text-ink-soft">{why}</p>
@@ -173,9 +174,16 @@ export function ResultsRoom({ roomCode }: { roomCode: string }) {
                   className={`rounded-2xl border border-line bg-card px-4 py-4 ${item.eligibility ? "opacity-70" : ""}`}
                 >
                   <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="font-medium">{restaurant.name}</p>
-                      <p className="text-sm text-ink-soft">{restaurant.cuisine || "Restaurant"}</p>
+                    <div className="flex min-w-0 items-center gap-3">
+                      <FoodPhoto restaurant={restaurant} compact className="h-14 w-14 shrink-0 rounded-xl" />
+                      <div className="min-w-0">
+                        <p className="truncate font-medium" title={restaurant.name}>
+                          {restaurant.name}
+                        </p>
+                        <p className="text-sm text-ink-soft">
+                          {formatCuisine(restaurant.cuisine) ?? `Cuisine · ${NOT_AVAILABLE}`}
+                        </p>
+                      </div>
                     </div>
                     {item.percent !== null ? (
                       <div className="text-right">
@@ -199,6 +207,15 @@ export function ResultsRoom({ roomCode }: { roomCode: string }) {
                     ) : null}
                     {item.eligibility ? <span className="text-chili">{item.eligibility}</span> : null}
                   </div>
+                  <details className="mt-3 text-sm">
+                    <summary className="cursor-pointer text-ink-soft underline underline-offset-4">
+                      Restaurant details<span className="sr-only"> for {restaurant.name}</span>
+                    </summary>
+                    <div className="mt-3 space-y-3">
+                      <RatingPrice restaurant={restaurant} />
+                      <ContactDetails restaurant={restaurant} />
+                    </div>
+                  </details>
                 </li>
               );
             })}

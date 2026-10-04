@@ -36,6 +36,10 @@ class RestaurantResult(BaseModel):
     price: int | None
     rating: float | None
     address: str | None
+    latitude: float | None = None
+    longitude: float | None = None
+    phone: str | None = None
+    website: str | None = None
     image_url: str | None
     likes: int
     super_likes: int = 0

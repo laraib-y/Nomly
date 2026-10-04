@@ -68,6 +68,8 @@ class Restaurant(Base):
     latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     address: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    phone: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    website: Mapped[str | None] = mapped_column(String(512), nullable=True)
     image_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     source: Mapped[str] = mapped_column(String(32), nullable=False)
     semantic_text: Mapped[str | None] = mapped_column(Text, nullable=True)

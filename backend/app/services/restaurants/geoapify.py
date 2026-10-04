@@ -7,7 +7,12 @@ from app.schemas.ai import DinnerIntent, search_radius_meters
 from app.schemas.restaurant import RestaurantCandidate
 from app.services.restaurants.base import RestaurantProvider, RestaurantProviderError
 from app.services.restaurants.mock import MockRestaurantProvider
-from app.services.restaurants.restaurant_normalizer import distance_meters, valid_coordinate
+from app.services.restaurants.restaurant_normalizer import (
+    clean_phone,
+    distance_meters,
+    safe_web_url,
+    valid_coordinate,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -186,6 +191,7 @@ def normalize_geoapify_feature(feature: dict) -> RestaurantCandidate | None:
     address = properties.get("formatted") or properties.get("address_line2")
     point = valid_coordinate(_float_or_none(latitude), _float_or_none(longitude))
     safe_lat, safe_lon = point if point else (None, None)
+    contact = properties.get("contact") if isinstance(properties.get("contact"), dict) else {}
 
     return RestaurantCandidate(
         external_id=str(place_id)[:128],
@@ -198,7 +204,9 @@ def normalize_geoapify_feature(feature: dict) -> RestaurantCandidate | None:
         latitude=safe_lat,
         longitude=safe_lon,
         address=str(address)[:255] if isinstance(address, str) and address.strip() else None,
-        image_url=_image_url(properties.get("image") or raw.get("image")),
+        phone=_first(clean_phone, contact.get("phone"), raw.get("phone"), raw.get("contact:phone")),
+        website=_first(safe_web_url, properties.get("website"), raw.get("website"), raw.get("contact:website")),
+        image_url=_first(safe_web_url, properties.get("image"), raw.get("image")),
         source="geoapify",
     )
 
@@ -317,11 +325,11 @@ def _safe_error(exc: Exception) -> str:
     return re.sub(r"(apiKey=)[^&\s]+", r"\1***", str(exc), flags=re.IGNORECASE)
 
 
-def _image_url(value: object) -> str | None:
-    if not isinstance(value, str):
-        return None
-    if value.startswith("https://") or value.startswith("http://"):
-        return value[:512]
+def _first(clean, *values: object) -> str | None:
+    for value in values:
+        cleaned = clean(value)
+        if cleaned:
+            return cleaned
     return None
 
 
