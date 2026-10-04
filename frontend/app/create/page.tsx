@@ -1,14 +1,18 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import Link from "next/link";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { useAuth } from "@/components/AuthProvider";
 import { VoiceInput } from "@/components/VoiceInput";
+import { loginHref } from "@/lib/account";
 import { createSession } from "@/lib/api";
 import { saveIdentity } from "@/lib/storage";
 
 export default function CreatePage() {
   const router = useRouter();
+  const { user, loading } = useAuth();
   const [description, setDescription] = useState(
     "We want something casual, Japanese or Korean, under $30 per person, around Burnaby.",
   );
@@ -18,6 +22,10 @@ export default function CreatePage() {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [spoken, setSpoken] = useState(false);
+
+  useEffect(() => {
+    if (user) setNickname((current) => current || user.display_name.slice(0, 24));
+  }, [user]);
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -106,9 +114,23 @@ export default function CreatePage() {
         >
           {pending ? "Finding restaurants..." : spoken ? "Find dinner" : "Create dinner"}
         </button>
-        <p className="text-sm text-ink-soft">
-          Anyone with the room code can join. You can start when the group is here.
-        </p>
+        {loading ? null : user ? (
+          <p className="text-center font-sans text-sm text-ink-soft">
+            The result will be saved to{" "}
+            <Link href="/history" className="underline underline-offset-4">
+              your history
+            </Link>
+            .
+          </p>
+        ) : (
+          <p className="text-center font-sans text-sm text-ink-soft">
+            Playing as a guest.{" "}
+            <Link href={loginHref("/create")} className="underline underline-offset-4">
+              Log in
+            </Link>{" "}
+            to keep this dinner in your history.
+          </p>
+        )}
       </form>
     </section>
   );

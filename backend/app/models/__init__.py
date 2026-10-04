@@ -1,12 +1,23 @@
-"""SQLAlchemy models for sessions, participants, restaurants, and swipes."""
+"""SQLAlchemy models for users, sessions, participants, restaurants, and swipes."""
 
-from app.models.entities import Base, Participant, Restaurant, Session, SessionRestaurant, Swipe
+from app.models.entities import (
+    AuthSession,
+    Base,
+    Participant,
+    Restaurant,
+    Session,
+    SessionRestaurant,
+    Swipe,
+    User,
+)
 
 __all__ = [
+    "AuthSession",
     "Base",
     "Participant",
     "Restaurant",
     "Session",
     "SessionRestaurant",
     "Swipe",
+    "User",
 ]

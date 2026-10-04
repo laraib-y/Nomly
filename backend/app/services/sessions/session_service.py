@@ -62,7 +62,7 @@ class SessionService:
         self.restaurants = restaurants
         self.matching = matching
 
-    def create_session(self, payload: CreateSessionRequest) -> CreateSessionResponse:
+    def create_session(self, payload: CreateSessionRequest, user_id: str | None = None) -> CreateSessionResponse:
         nickname = clean_nickname(payload.nickname)
         description = " ".join(payload.description.split())
         if len(description) < 3:
@@ -86,6 +86,7 @@ class SessionService:
             description=description,
             status="lobby",
             intent_json=intent.model_dump_json(),
+            user_id=user_id,
         )
         self.db.add(dinner)
         self.db.flush()
@@ -338,7 +339,11 @@ class SessionService:
                 SessionRestaurant(session_id=dinner.id, restaurant_id=restaurant.id, position=position)
             )
 
-    def _build_results(self, dinner: Session) -> ResultsResponse:
+    def results_for(self, dinner: Session) -> ResultsResponse:
+        """Results for an already-loaded dinner. Same numbers as the live results screen."""
+        return self._build_results(dinner, log=False)
+
+    def _build_results(self, dinner: Session, log: bool = True) -> ResultsResponse:
         participants = self._participants(dinner)
         links = (
             self.db.query(SessionRestaurant)
@@ -373,15 +378,15 @@ class SessionService:
             len(participants),
             _match_constraints(dinner),
         )
-        eligible = sum(1 for item in ranked if not item.eliminated)
-        logger.info(
-            "Session matching complete. participants=%s evaluated=%s eligible=%s vetoed=%s winner=%s",
-            len(participants),
-            len(ranked),
-            eligible,
-            sum(1 for item in ranked if item.vetoes),
-            ranked[0].restaurant_id if ranked else None,
-        )
+        if log:
+            logger.info(
+                "Session matching complete. participants=%s evaluated=%s eligible=%s vetoed=%s winner=%s",
+                len(participants),
+                len(ranked),
+                sum(1 for item in ranked if not item.eliminated),
+                sum(1 for item in ranked if item.vetoes),
+                ranked[0].restaurant_id if ranked else None,
+            )
         places = {link.restaurant.id: link.restaurant for link in links}
         results = [_to_result(item, places.get(item.restaurant_id)) for item in ranked]
         return ResultsResponse(

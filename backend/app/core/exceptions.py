@@ -13,6 +13,16 @@ class BadRequestError(AppError):
         super().__init__(400, detail, code)
 
 
+class UnauthorizedError(AppError):
+    def __init__(self, detail: str = "Log in to continue", code: str | None = None) -> None:
+        super().__init__(401, detail, code)
+
+
+class TooManyRequestsError(AppError):
+    def __init__(self, detail: str, code: str | None = None) -> None:
+        super().__init__(429, detail, code)
+
+
 class ForbiddenError(AppError):
     def __init__(self, detail: str, code: str | None = None) -> None:
         super().__init__(403, detail, code)

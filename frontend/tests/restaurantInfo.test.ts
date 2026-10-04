@@ -208,7 +208,7 @@ test("missing rating and price are hidden instead of showing fallback text", () 
 });
 
 test("restaurant cards no longer use the crocodile placeholder", () => {
-  for (const file of ["components/RestaurantCard.tsx", "components/RestaurantInfo.tsx", "components/ResultsRoom.tsx"]) {
+  for (const file of ["components/RestaurantCard.tsx", "components/RestaurantInfo.tsx", "components/ResultsRoom.tsx", "components/ResultsDisplay.tsx"]) {
     assert.doesNotMatch(readFileSync(file, "utf8"), /IMG_8293/, file);
   }
 });

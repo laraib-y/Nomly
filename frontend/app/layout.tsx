@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Outfit } from "next/font/google";
 
+import { AuthProvider } from "@/components/AuthProvider";
 import { Header } from "@/components/Header";
 
 import "./globals.css";
@@ -24,8 +25,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className={`${fraunces.variable} ${outfit.variable} font-sans antialiased`}>
-        <Header />
-        <main className="mx-auto w-full max-w-6xl px-5 pb-16">{children}</main>
+        <AuthProvider>
+          <Header />
+          <main className="mx-auto w-full max-w-6xl px-5 pb-16">{children}</main>
+        </AuthProvider>
       </body>
     </html>
   );

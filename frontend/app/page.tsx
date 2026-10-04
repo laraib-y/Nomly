@@ -3,7 +3,7 @@ import Image from "next/image";
 
 const steps = [
   ["01", "Describe", "Say what the group wants, in plain language."],
-  ["02", "Invite", "Share a short room code. No accounts."],
+  ["02", "Invite", "Share a short room code. No account needed."],
   ["03", "Swipe", "Everyone chooses privately on the same list."],
   ["04", "Match", "A Python engine ranks where you actually agree."],
 ];
