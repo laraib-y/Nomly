@@ -113,6 +113,19 @@ def test_host_starts_dinner(client):
     assert [item["id"] for item in again_deck] == [item["id"] for item in deck]
 
 
+def test_local_frontend_port_can_call_the_api(client):
+    response = client.options(
+        "/api/sessions",
+        headers={
+            "Origin": "http://localhost:3002",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type",
+        },
+    )
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://localhost:3002"
+
+
 def test_join_after_start_is_rejected(client):
     created = create_dinner(client)
     client.post(
