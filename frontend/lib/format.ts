@@ -9,7 +9,7 @@ export function formatRating(rating: number | null) {
 }
 
 export function cuisineWash(cuisine: string | null) {
-  const palette = ["#f0d3c2", "#dce6cf", "#f3ddb0", "#d9e2f2", "#ead8ee", "#f6d6cf"];
+  const palette = ["#dce6cf", "#f3ddb0", "#e7e4d8", "#dce5dc", "#f0e0d7", "#e6e4cf"];
   const seed = (cuisine || "Dinner").charCodeAt(0);
   return palette[seed % palette.length];
 }
