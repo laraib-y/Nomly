@@ -6,9 +6,15 @@ import { useRouter } from "next/navigation";
 import { joinSession } from "@/lib/api";
 import { saveIdentity } from "@/lib/storage";
 
-export default function JoinPage() {
+const panel = "rounded-3xl border border-ink/10 bg-[#fbf8f2]";
+const box = "rounded-2xl border border-ink/15 bg-card";
+const fieldInput = `${box} w-full px-4 py-3 text-lg outline-none placeholder:text-ink/40 transition-colors focus:border-[#2f4a22]/60 focus:bg-[#fffaf3] focus:ring-2 focus:ring-[#b5c384]`;
+const pill =
+  "mt-5 h-12 w-full rounded-2xl bg-[#b5c384] text-lg text-[#1f3315] transition duration-100 enabled:hover:bg-[#a9b975] enabled:active:scale-[0.98] disabled:opacity-60";
+
+  export default function JoinPage() {
   const router = useRouter();
-  const [roomCode, setRoomCode] = useState("");
+  const [code, setCode] = useState("");
   const [nickname, setNickname] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -18,11 +24,11 @@ export default function JoinPage() {
     setPending(true);
     setError(null);
     try {
-      const session = await joinSession(roomCode, nickname);
-      const participant = session.participant;
+      const joined = await joinSession(code.trim().toLowerCase(), nickname);
+      const participant = joined.participant;
       if (!participant) throw new Error("Join did not return a participant");
-      saveIdentity(session.room_code, { participantId: participant.id, nickname: participant.nickname });
-      router.push(`/dinner/${session.room_code}`);
+      saveIdentity(joined.room_code, { participantId: participant.id, nickname: participant.nickname });
+      router.push(`/dinner/${joined.room_code}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not join");
       setPending(false);
@@ -30,37 +36,39 @@ export default function JoinPage() {
   }
 
   return (
-    <section className="mx-auto max-w-xl pt-8">
-      <p className="text-sm uppercase tracking-[0.2em] text-chili">Join dinner</p>
-      <h1 className="mt-3 font-serif text-5xl">Got a room code?</h1>
-      <form onSubmit={onSubmit} className="mt-8 space-y-5 rounded-[28px] border border-line bg-card p-6 shadow-card">
-        <label className="block">
-          <span className="text-sm text-ink-soft">Room code</span>
-          <input
-            required
-            value={roomCode}
-            onChange={(event) => setRoomCode(event.target.value.toUpperCase())}
-            placeholder="AB7KQ2"
-            className="mt-2 w-full rounded-2xl border border-line bg-paper px-4 py-3 font-serif text-2xl tracking-[0.2em] outline-none focus:border-chili"
-          />
+    <section className="mx-auto w-full max-w-[600px] px-4 pt-10 font-serif">
+      <h1 className="text-center text-5xl leading-tight">Got the code?</h1>
+
+      <form onSubmit={onSubmit} className={`${panel} mt-10 p-6 sm:p-8`}>
+        <label htmlFor="room-code" className="block text-lg">
+          Room code
         </label>
-        <label className="block">
-          <span className="text-sm text-ink-soft">Your name</span>
-          <input
-            required
-            value={nickname}
-            onChange={(event) => setNickname(event.target.value)}
-            placeholder="Sarah"
-            className="mt-2 w-full rounded-2xl border border-line bg-paper px-4 py-3 outline-none focus:border-chili"
-          />
+        <input
+          id="room-code"
+          required
+          autoComplete="off"
+          autoCapitalize="characters"
+          value={code}
+          onChange={(event) => setCode(event.target.value)}
+          className={`mt-2 uppercase tracking-[0.2em] ${fieldInput}`}
+        />
+
+        <label htmlFor="nickname" className="mt-5 block text-lg">
+          Name
         </label>
-        {error ? <p className="text-sm text-chili">{error}</p> : null}
-        <button
-          type="submit"
-          disabled={pending}
-          className="w-full rounded-full bg-ink px-5 py-3 text-paper disabled:opacity-60"
-        >
-          {pending ? "Joining..." : "Join dinner"}
+        <input
+          id="nickname"
+          required
+          autoComplete="off"
+          value={nickname}
+          onChange={(event) => setNickname(event.target.value)}
+          className={`mt-2 ${fieldInput}`}
+        />
+
+        {error ? <p className="mt-4 text-sm text-[#c45a56]">{error}</p> : null}
+
+        <button type="submit" disabled={pending} className={pill}>
+          {pending ? "Joining..." : "Join your friends!"}
         </button>
       </form>
     </section>

@@ -1,42 +1,80 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useState } from "react";
 
-import { cuisineWash, formatPrice, formatRating } from "@/lib/format";
+import { cuisineWash, formatPrice } from "@/lib/format";
 import type { Restaurant } from "@/types";
 
 export function RestaurantCard({ restaurant }: { restaurant: Restaurant }) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const showImage = Boolean(restaurant.image_url) && !imageFailed;
   const price = formatPrice(restaurant.price);
-  const rating = formatRating(restaurant.rating);
-  const meta = [restaurant.cuisine, price].filter(Boolean).join(" · ");
+  const rating = restaurant.rating != null ? restaurant.rating.toFixed(1) : null;
+  const chip = "rounded-full border-2 border-ink px-3 py-0.5";
 
   return (
-    <article className="overflow-hidden rounded-[28px] border border-line bg-card shadow-card">
-      <div className="relative h-48" style={{ background: cuisineWash(restaurant.cuisine) }}>
-        {restaurant.image_url ? (
-          // External place photos are optional and may fail. The wash remains underneath.
+    <article className="flex aspect-square w-full flex-col overflow-hidden rounded-3xl bg-[#fffaf3] shadow-[0_10px_30px_-14px_rgba(36,28,24,0.28)]">
+      <div
+        className="relative min-h-0 flex-1 border-b-[3px] border-ink"
+        style={{ background: cuisineWash(restaurant.cuisine) }}
+      >
+        {showImage ? (
+          // External place photos are optional and may fail. The colored wash stays underneath.
+          // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={restaurant.image_url}
+            src={restaurant.image_url as string}
             alt=""
-            className="h-full w-full object-cover"
-            onError={(event) => {
-              event.currentTarget.style.display = "none";
-            }}
+            className="absolute inset-0 h-full w-full object-cover"
+            onError={() => setImageFailed(true)}
           />
         ) : (
-          <div className="flex h-full items-end p-6">
-            <p className="font-serif text-4xl">{restaurant.cuisine || "Dinner"}</p>
+          <div className="flex h-full items-center justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/assets/IMG_8293.webp" alt="" className="h-[85%] w-auto object-contain" />
           </div>
         )}
       </div>
-      <div className="space-y-3 p-6">
-        <h2 className="font-serif text-4xl leading-none">{restaurant.name}</h2>
-        {meta ? <p className="text-sm text-ink-soft">{meta}</p> : null}
-        {rating ? <p className="text-sm">{rating}</p> : null}
-        {restaurant.address ? <p className="text-sm">{restaurant.address}</p> : null}
-        {restaurant.description ? <p className="text-sm leading-relaxed text-ink-soft">{restaurant.description}</p> : null}
+
+      <div className="px-5 pb-4 pt-3">
+        <h2 className="line-clamp-2 text-3xl leading-tight">{restaurant.name}</h2>
+        <div className="mt-2 flex flex-wrap gap-2 text-sm">
+          {restaurant.cuisine ? <span className={`${chip} bg-[#b5c384]`}>{restaurant.cuisine}</span> : null}
+          {price ? <span className={`${chip} bg-[#f3ddb0]`}>{price}</span> : null}
+          {rating ? <span className={`${chip} bg-white`}>★ {rating}</span> : null}
+        </div>
+        {restaurant.description ? (
+          <p className="mt-2 line-clamp-2 text-sm leading-snug text-ink-soft">{restaurant.description}</p>
+        ) : restaurant.address ? (
+          <p className="mt-2 truncate text-sm text-ink-soft">{restaurant.address}</p>
+        ) : null}
       </div>
     </article>
+  );
+}
+
+function ImageButton({
+  src,
+  label,
+  onClick,
+  disabled,
+}: {
+  src: string;
+  label: string;
+  onClick: () => void;
+  disabled: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      style={{ backgroundImage: `url(${src})`, backgroundSize: "100% 100%" }}
+      className="relative block aspect-[632/238] w-full select-none bg-no-repeat transition-transform duration-75 enabled:hover:-translate-y-0.5 enabled:active:translate-y-0.5 enabled:active:scale-[0.98] disabled:opacity-50"
+    >
+      <span className="absolute inset-x-0 bottom-0 flex h-[74%] items-center justify-center text-xl text-ink">
+        {label}
+      </span>
+    </button>
   );
 }
 
@@ -57,41 +95,22 @@ export function DecisionButtons({
   onSuperLike: () => void;
   onVeto: () => void;
 }) {
+  const extra = "text-sm text-ink-soft underline underline-offset-4 disabled:no-underline disabled:opacity-40";
+
   return (
-    <div className="mt-5 grid grid-cols-2 gap-3">
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={onPass}
-        className="rounded-full border border-ink/15 bg-card px-5 py-3 disabled:opacity-50"
-      >
-        Pass
-      </button>
-      <motion.button
-        type="button"
-        disabled={disabled}
-        onClick={onLike}
-        whileTap={{ scale: 0.98 }}
-        className="rounded-full bg-moss px-5 py-3 text-white disabled:opacity-50"
-      >
-        Like
-      </motion.button>
-      <button
-        type="button"
-        disabled={disabled || !superLikeLeft}
-        onClick={onSuperLike}
-        className="rounded-full border border-ink/15 bg-card px-5 py-3 disabled:opacity-50"
-      >
-        Super Like
-      </button>
-      <button
-        type="button"
-        disabled={disabled || !vetoLeft}
-        onClick={onVeto}
-        className="rounded-full border border-chili/40 px-5 py-3 text-chili disabled:opacity-50"
-      >
-        Veto
-      </button>
+    <div className="mt-5">
+      <div className="grid grid-cols-2 gap-5">
+        <ImageButton src="/assets/btn-pass.webp" label="Pass" onClick={onPass} disabled={disabled} />
+        <ImageButton src="/assets/btn-snack.webp" label="Snack" onClick={onLike} disabled={disabled} />
+      </div>
+      <div className="mt-5 flex justify-center gap-6">
+        <button type="button" disabled={disabled || !superLikeLeft} onClick={onSuperLike} className={extra}>
+          {superLikeLeft ? "Super snack · 1 left" : "Super snack used"}
+        </button>
+        <button type="button" disabled={disabled || !vetoLeft} onClick={onVeto} className={extra}>
+          {vetoLeft ? "Veto · 1 left" : "Veto used"}
+        </button>
+      </div>
     </div>
   );
 }
