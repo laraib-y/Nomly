@@ -32,10 +32,14 @@ export function LoadingScreen({ destination }: { destination: string }) {
         alt="Nomly loading animation"
         width={1400}
         height={330}
+        width={2388}
+        height={500}
         unoptimized
+        className="h-auto w-full max-w-xl"
         className="h-auto w-full max-w-xl"
       />
       <h1 className="header2 !mt-0">Loading . . .</h1>
+     
      
     </section>
   );

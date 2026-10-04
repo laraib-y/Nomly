@@ -1,24 +1,20 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useAuth } from "@/components/AuthProvider";
 import { VoiceInput } from "@/components/VoiceInput";
-import { loginHref } from "@/lib/account";
 import { createSession } from "@/lib/api";
 import { saveIdentity } from "@/lib/storage";
 
 export default function CreatePage() {
   const router = useRouter();
-  const { user, loading } = useAuth();
-  const [description, setDescription] = useState(
-    "We want something casual, Japanese or Korean, under $30 per person, around Burnaby.",
-  );
+  const { user } = useAuth();
+  const [description, setDescription] = useState("");
   const [nickname, setNickname] = useState("");
-  const [location, setLocation] = useState("Burnaby");
-  const [groupSize, setGroupSize] = useState(5);
+  const [location, setLocation] = useState("");
+  const [groupSize, setGroupSize] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [spoken, setSpoken] = useState(false);
@@ -36,7 +32,7 @@ export default function CreatePage() {
         description,
         nickname,
         location,
-        group_size: groupSize,
+        group_size: Number(groupSize),
       });
       const participant = session.participant;
       if (!participant) throw new Error("The room was created without a host");
@@ -58,7 +54,7 @@ export default function CreatePage() {
             required
             value={nickname}
             onChange={(event) => setNickname(event.target.value)}
-            placeholder="Abdalla"
+            placeholder="Enter Your Name"
             className="form-field mt-2"
           />
         </label>
@@ -73,6 +69,7 @@ export default function CreatePage() {
             rows={5}
             value={description}
             onChange={(event) => setDescription(event.target.value)}
+            placeholder="Let CocoNomNom know the restaurants you are looking for!"
             className="form-field mt-2"
           />
           {spoken ? <p className="mt-2 text-sm text-ink-soft">You said this. Edit it if anything is off.</p> : null}
@@ -89,10 +86,12 @@ export default function CreatePage() {
             <span>Group size</span>
             <input
               type="number"
+              required
               min={1}
               max={20}
               value={groupSize}
-              onChange={(event) => setGroupSize(Number(event.target.value))}
+              onChange={(event) => setGroupSize(event.target.value)}
+              placeholder="Number of people"
               className="form-field mt-2"
             />
           </label>
@@ -102,6 +101,7 @@ export default function CreatePage() {
               required
               value={location}
               onChange={(event) => setLocation(event.target.value)}
+              placeholder="Enter a city or neighborhood"
               className="form-field mt-2"
             />
           </label>
@@ -114,23 +114,6 @@ export default function CreatePage() {
         >
           {pending ? "Finding restaurants..." : spoken ? "Find dinner" : "Create dinner"}
         </button>
-        {loading ? null : user ? (
-          <p className="text-center font-sans text-sm text-ink-soft">
-            The result will be saved to{" "}
-            <Link href="/history" className="underline underline-offset-4">
-              your history
-            </Link>
-            .
-          </p>
-        ) : (
-          <p className="text-center font-sans text-sm text-ink-soft">
-            Playing as a guest.{" "}
-            <Link href={loginHref("/create")} className="underline underline-offset-4">
-              Log in
-            </Link>{" "}
-            to keep this dinner in your history.
-          </p>
-        )}
       </form>
     </section>
   );
