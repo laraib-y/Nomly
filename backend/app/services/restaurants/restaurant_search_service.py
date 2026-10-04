@@ -26,11 +26,21 @@ class RestaurantSearchService:
     call Geoapify again.
     """
 
-    def __init__(self, provider: RestaurantProvider, fallback: RestaurantProvider | None = None) -> None:
+    def __init__(
+        self,
+        provider: RestaurantProvider,
+        fallback: RestaurantProvider | None = None,
+        semantic: object | None = None,
+    ) -> None:
         self.provider = provider
         self.fallback = fallback or MockRestaurantProvider()
+        self.semantic = semantic
 
-    def build_deck(self, intent: DinnerIntent) -> list[RestaurantCandidate]:
+    def build_deck(
+        self,
+        intent: DinnerIntent,
+        center: tuple[float, float] | None = None,
+    ) -> list[RestaurantCandidate]:
         _validate_location(intent)
         logger.info(
             "Restaurant search started. cuisines=%s price=%s location=%s radius=%s",
@@ -41,14 +51,19 @@ class RestaurantSearchService:
         )
         raw = self._load_candidates(intent)
         deduped = dedupe_restaurants(raw)
-        constrained = apply_hard_constraints(deduped, intent)
-        ranked = rank_candidates(constrained, intent)
+        constrained = apply_hard_constraints(deduped, intent, center)
+        ranked = rank_candidates(constrained, intent, center)
         if intent.cuisines:
             matched = [item for item in ranked if cuisine_matches(item.restaurant, intent)]
             if matched:
                 ranked = matched
             else:
                 logger.info("No cuisine matches for %s. Using the best nearby places.", intent.cuisines)
+        if self.semantic is not None:
+            try:
+                ranked = self.semantic.rerank(ranked, intent)
+            except Exception:
+                logger.warning("Semantic search unavailable; using structured ranking fallback")
         deck = [item.restaurant for item in select_diverse_deck(ranked)]
         logger.info("Provider returned %s candidates", len(raw))
         logger.info("After deduplication: %s", len(deduped))

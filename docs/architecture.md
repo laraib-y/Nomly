@@ -42,6 +42,10 @@ Restaurant Search Service
         ↓
 Geoapify or the mock catalog
         ↓
+Hard constraints and structured ranking
+        ↓
+TiDB vector search, when embeddings exist
+        ↓
 Restaurant deck
         ↓
 Phase 4 group matcher
@@ -90,7 +94,9 @@ Deduplication
     ↓
 Hard Constraints
     ↓
-Relevance Ranking
+Structured Ranking
+    ↓
+Semantic Ranking
     ↓
 Diversity Selection
     ↓
@@ -100,9 +106,13 @@ Diversity Selection
 - `GeoapifyRestaurantProvider` geocodes the dinner location and searches restaurant categories that match the intent. Japanese in Burnaby is a different query from Italian in Vancouver.
 - `MockRestaurantProvider` is a curated catalog used when `GEOAPIFY_API_KEY` is missing or Geoapify returns an expected failure. The catalog still follows cuisine, price, and city, so local development can tell those searches apart.
 - A short real result is kept as-is. The deck is not padded with unrelated places just to reach 15. The older `search()` helper used by provider tests may still pad a failed live call so a demo never opens an empty room.
-- Hard filters drop a known price above the budget and, when a center point exists, a place outside the radius. Missing price or coordinates are kept. Dietary words only affect ranking when the provider already labeled the place, and they are not an allergy or safety guarantee.
-- Ranking is a weighted score, not the group matcher: cuisine 40, price 25, location 15, rating 15, vibe or category 5. Diversity then spreads cuisines inside that ranked set.
-- The Geoapify key stays on the server. Logs redact `apiKey`.
+- Hard filters drop a known price above the budget and, when a center point exists, a place outside the radius. A stated diet drops a labeled place that misses it when another labeled place satisfies it. Missing price, coordinates, or labels are kept. This is not an allergy or safety guarantee.
+- Structured ranking is a weighted score, not the group matcher: cuisine 40, price 25, location 15, rating 15, vibe or category 5.
+- Semantic ranking runs after that filter. The query text is `DinnerIntent.vibe` only. Cuisine, budget, and location are not embedded, so vector similarity cannot relax them. The blend is `0.75 * structured + 0.25 * semantic`. Semantic scores are cosine similarity mapped from [-1, 1] to [0, 1]. TiDB computes `VEC_COSINE_DISTANCE` (`1 - cosine`) over the eligible restaurant ids. Local databases without a vector column use the same cosine math on `embedding_json`.
+- If no candidate has an embedding, the embedding request fails, or the TiDB query fails, the structured order is kept and room creation continues. Logs say `Semantic search unavailable; using structured ranking fallback`. They do not include keys or vectors.
+- Restaurant embeddings are built from stored fields only: name, cuisine, price, rating, address, categories, and description. Refresh them with `python -m app.services.restaurants.refresh_embeddings`. A changed text hash clears the old vector. Creating a room does not call the embedding API for the catalog.
+- Diversity then spreads cuisines inside the ranked set.
+- The Geoapify key and the embedding key stay on the server. Logs redact `apiKey`.
 
 `MatchingService`
 
@@ -143,7 +153,7 @@ Progress messages contain counts only. They do not say who liked which restauran
 
 - `sessions` holds the room, description, host, and status (`lobby`, `active`, `completed`).
 - `participants` belong to one session.
-- `restaurants` stores normalized places. The same external place can be reused.
+- `restaurants` stores normalized places. The same external place can be reused. `semantic_text`, `semantic_text_hash`, and `embedding_json` describe that same row. TiDB may also store an `embedding VECTOR(768)` column. Clients do not receive those fields.
 - `session_restaurants` attaches one ordered deck to a session. This join table is what keeps swipe order identical for the group.
 - `swipes` stores `pass`, `like`, `super_like`, or `veto`. One row per participant and restaurant. A second unique key allows only one super like and one veto per participant in the room.
 - `sessions.intent_json` keeps the parsed dinner intent so budget, diet, and radius can be enforced again at match time.
@@ -152,4 +162,4 @@ Progress messages contain counts only. They do not say who liked which restauran
 
 ## Intentionally not built
 
-Accounts, payments, notifications, vector search, taste memory, travel-time routing, and ElevenLabs are extension points only. They are not part of this MVP.
+Accounts, payments, notifications, taste memory, travel-time routing, and ElevenLabs are extension points only. They are not part of this MVP. Semantic ranking is limited to soft preferences over restaurants that already passed the structured filters.

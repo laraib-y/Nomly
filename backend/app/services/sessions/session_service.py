@@ -30,6 +30,9 @@ from app.services.matching.matching_service import MatchRestaurant, MatchSwipe, 
 from app.services.matching.preferences import PreferenceType, quota_key
 from app.services.restaurants.base import RestaurantProvider
 from app.services.restaurants.restaurant_search_service import RestaurantSearchService
+from app.services.restaurants.semantic_rank import SemanticRanker
+from app.services.restaurants.semantic_search import clear_stored_vector
+from app.services.restaurants.semantic_text import sync_semantic_source
 from app.services.sessions.room_code import generate_room_code
 
 logger = logging.getLogger(__name__)
@@ -73,7 +76,10 @@ class SessionService:
             group_size=payload.group_size,
         )
 
-        candidates = RestaurantSearchService(self.restaurants).build_deck(intent)
+        candidates = RestaurantSearchService(
+            self.restaurants,
+            semantic=SemanticRanker(db=self.db),
+        ).build_deck(intent)
 
         dinner = Session(
             room_code=self._unique_room_code(),
@@ -317,6 +323,8 @@ class SessionService:
                 self.db.flush()
             elif encoded_categories and not restaurant.categories:
                 restaurant.categories = encoded_categories
+            if sync_semantic_source(restaurant, candidate):
+                clear_stored_vector(self.db, restaurant.id)
             self.db.add(
                 SessionRestaurant(session_id=dinner.id, restaurant_id=restaurant.id, position=position)
             )

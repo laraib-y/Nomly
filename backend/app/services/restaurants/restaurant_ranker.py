@@ -47,10 +47,12 @@ def apply_hard_constraints(
     intent: DinnerIntent,
     center: tuple[float, float] | None = None,
 ) -> list[RestaurantCandidate]:
-    """Drop places that miss a reliable budget or radius limit.
+    """Drop places that miss a reliable budget, radius, or labeled diet.
 
-    A missing price or coordinate is kept. Incomplete provider data is not
-    treated as a violation, and dietary metadata is never used as a medical filter.
+    A missing price, coordinate, or diet label is kept. Incomplete provider
+    data is not treated as a violation. A stated diet removes labeled places
+    that miss it only when another labeled place satisfies it, so an unmatched
+    preference cannot empty the deck. This is not an allergy or safety guarantee.
     """
 
     kept: list[RestaurantCandidate] = []
@@ -63,7 +65,27 @@ def apply_hard_constraints(
             if point is not None and distance_meters(center[0], center[1], point[0], point[1]) > limit:
                 continue
         kept.append(restaurant)
-    return kept
+    return _apply_labeled_diet(kept, intent)
+
+
+def _apply_labeled_diet(
+    restaurants: list[RestaurantCandidate],
+    intent: DinnerIntent,
+) -> list[RestaurantCandidate]:
+    preferences = [item.strip() for item in intent.dietary_preferences if item and item.strip()]
+    if not preferences:
+        return restaurants
+    matching = [item for item in restaurants if not _labeled_diet_miss(item, preferences)]
+    return matching or restaurants
+
+
+def _labeled_diet_miss(restaurant: RestaurantCandidate, preferences: list[str]) -> bool:
+    haystack = " ".join(
+        [restaurant.cuisine or "", restaurant.description or "", *restaurant.categories]
+    ).lower()
+    if not haystack.strip():
+        return False
+    return any(preference.lower() not in haystack for preference in preferences)
 
 
 def cuisine_matches(restaurant: RestaurantCandidate, intent: DinnerIntent) -> bool:

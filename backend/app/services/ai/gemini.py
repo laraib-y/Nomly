@@ -97,7 +97,7 @@ class GeminiAIService(AIService):
         owns_client = self._client is None
         client = self._client or httpx.Client(timeout=12.0)
         try:
-            response = client.post(url, params={"key": self.api_key}, json=payload)
+            response = client.post(url, headers={"x-goog-api-key": self.api_key}, json=payload)
             response.raise_for_status()
             body = response.json()
         except httpx.HTTPStatusError as exc:

@@ -99,7 +99,12 @@ export function getResults(roomCode: string) {
 }
 
 export function sessionSocketUrl(roomCode: string, participantId?: string) {
-  const base = API_URL.replace(/^http/, "ws");
-  const query = participantId ? `?participant_id=${encodeURIComponent(participantId)}` : "";
-  return `${base}/ws/sessions/${encodeURIComponent(roomCode.trim().toUpperCase())}${query}`;
+  const code = roomCode.trim().toUpperCase();
+  const url = new URL(API_URL);
+  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  url.pathname = `/ws/sessions/${code}`;
+  url.search = "";
+  url.hash = "";
+  if (participantId) url.searchParams.set("participant_id", participantId);
+  return url.toString();
 }
