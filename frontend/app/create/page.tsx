@@ -9,12 +9,10 @@ import { saveIdentity } from "@/lib/storage";
 
 export default function CreatePage() {
   const router = useRouter();
-  const [description, setDescription] = useState(
-    "We want something casual, Japanese or Korean, under $30 per person, around Burnaby.",
-  );
+  const [description, setDescription] = useState("");
   const [nickname, setNickname] = useState("");
-  const [location, setLocation] = useState("Burnaby");
-  const [groupSize, setGroupSize] = useState(5);
+  const [location, setLocation] = useState("");
+  const [groupSize, setGroupSize] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [spoken, setSpoken] = useState(false);
@@ -28,7 +26,7 @@ export default function CreatePage() {
         description,
         nickname,
         location,
-        group_size: groupSize,
+        group_size: Number(groupSize),
       });
       const participant = session.participant;
       if (!participant) throw new Error("The room was created without a host");
@@ -50,7 +48,7 @@ export default function CreatePage() {
             required
             value={nickname}
             onChange={(event) => setNickname(event.target.value)}
-            placeholder="Abdalla"
+            placeholder="Enter Your Name"
             className="form-field mt-2"
           />
         </label>
@@ -65,6 +63,7 @@ export default function CreatePage() {
             rows={5}
             value={description}
             onChange={(event) => setDescription(event.target.value)}
+            placeholder="Describe your dinner preferences"
             className="form-field mt-2"
           />
           {spoken ? <p className="mt-2 text-sm text-ink-soft">You said this. Edit it if anything is off.</p> : null}
@@ -81,10 +80,12 @@ export default function CreatePage() {
             <span>Group size</span>
             <input
               type="number"
+              required
               min={1}
               max={20}
               value={groupSize}
-              onChange={(event) => setGroupSize(Number(event.target.value))}
+              onChange={(event) => setGroupSize(event.target.value)}
+              placeholder="Number of people"
               className="form-field mt-2"
             />
           </label>
@@ -94,6 +95,7 @@ export default function CreatePage() {
               required
               value={location}
               onChange={(event) => setLocation(event.target.value)}
+              placeholder="Enter a city or neighborhood"
               className="form-field mt-2"
             />
           </label>
@@ -106,9 +108,6 @@ export default function CreatePage() {
         >
           {pending ? "Finding restaurants..." : spoken ? "Find dinner" : "Create dinner"}
         </button>
-        <p className="text-sm text-ink-soft">
-          Anyone with the room code can join. You can start when the group is here.
-        </p>
       </form>
     </section>
   );
