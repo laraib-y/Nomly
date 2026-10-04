@@ -13,10 +13,9 @@ export default function HomePage() {
     <div className="landing-enter grid items-center gap-12 pt-6 lg:grid-cols-[1.1fr_0.9fr] lg:pt-12">
       <section>
         <p className="eyebrow">Group dinner, settled</p>
-        <h1 className="header1">Stop arguing. Let the group decide.</h1>
+        <h1 className="header1">Stop arguing. Let Nomly help you.</h1>
         <p className="lead-copy">
-          Describe the night, invite your friends, and swipe the same restaurants. Nomly finds the place your table
-          actually agrees on.
+          Croco Nomnom will turn your group's chaotic preferences into one restaurant everyone actually agrees on.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Link href="/loading/create" className="button-primary rounded-full px-6 py-3 shadow-card">
