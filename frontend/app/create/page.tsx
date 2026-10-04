@@ -1,17 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useAuth } from "@/components/AuthProvider";
 import { VoiceInput } from "@/components/VoiceInput";
-import { loginHref } from "@/lib/account";
 import { createSession } from "@/lib/api";
 import { saveIdentity } from "@/lib/storage";
 
 export default function CreatePage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [description, setDescription] = useState("");
   const [nickname, setNickname] = useState("");
   const [location, setLocation] = useState("");
@@ -70,7 +69,7 @@ export default function CreatePage() {
             rows={5}
             value={description}
             onChange={(event) => setDescription(event.target.value)}
-            placeholder="Describe your dinner preferences"
+            placeholder="Let CocoNomNom know the restaurants you are looking for!"
             className="form-field mt-2"
           />
           {spoken ? <p className="mt-2 text-sm text-ink-soft">You said this. Edit it if anything is off.</p> : null}
