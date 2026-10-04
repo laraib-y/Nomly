@@ -45,6 +45,8 @@ export type Restaurant = {
   latitude: number | null;
   longitude: number | null;
   address: string | null;
+  phone?: string | null;
+  website?: string | null;
   image_url: string | null;
   source: string;
   position: number;
@@ -59,6 +61,10 @@ export type RestaurantResult = {
   price: number | null;
   rating: number | null;
   address: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  phone?: string | null;
+  website?: string | null;
   image_url: string | null;
   likes: number;
   super_likes?: number;
@@ -111,6 +117,56 @@ export type LiveEvent = {
   } | null;
   detail?: string;
 };
+
+export type AuthUser = {
+  id: string;
+  email: string;
+  display_name: string;
+  created_at: string;
+};
+
+export type HistoryWinner = {
+  restaurant_id: string;
+  name: string;
+  cuisine: string | null;
+  rating: number | null;
+  price: number | null;
+  address: string | null;
+  image_url: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  phone?: string | null;
+  website?: string | null;
+};
+
+export type HistoryItem = {
+  session_id: string;
+  created_at: string;
+  completed_at: string;
+  description: string;
+  location: string | null;
+  group_size: number | null;
+  participant_count: number;
+  restaurant_count: number;
+  winner: HistoryWinner | null;
+  satisfaction_percent: number | null;
+  positives: number | null;
+};
+
+export type HistoryStats = {
+  dinners: number;
+  strong_matches: number;
+  average_satisfaction_percent: number | null;
+  average_group_size: number | null;
+};
+
+export type HistoryList = {
+  items: HistoryItem[];
+  stats: HistoryStats;
+  cuisines: { label: string; count: number }[];
+};
+
+export type HistoryDetail = HistoryItem & { results: Results };
 
 export type Identity = {
   participantId: string;

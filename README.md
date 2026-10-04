@@ -243,6 +243,9 @@ Restaurants are fetched once when the room is created and reused for every swipe
 | `FRONTEND_URL` | Backend CORS for a deployed frontend | No |
 | `NEXT_PUBLIC_API_URL` | Frontend | No, defaults to `http://localhost:8000` |
 | `CORS_ORIGINS` | Backend | No |
+| `AUTH_COOKIE_SAMESITE` | Backend. `lax` by default; `none` for a cross-site deployment (forces Secure) | No |
+| `AUTH_COOKIE_SECURE` | Backend. Set `true` when the API is served over HTTPS | No |
+| `AUTH_SESSION_DAYS` | Backend. How long a login lasts, 30 by default | No |
 
 `.env.example` lists them. `.env` is gitignored. Do not create `NEXT_PUBLIC_` copies of the Gemini, Geoapify, ElevenLabs, or database credentials.
 
@@ -286,4 +289,4 @@ These are deliberately not in the MVP. The service boundaries are there so they 
 - An ElevenLabs voice concierge
 - Richer Gemini explanations
 
-Also out of scope: accounts, passwords, payments, notifications, an admin dashboard, analytics, allergy guarantees, Redis, Kafka, RabbitMQ, microservices, and Docker.
+Accounts are optional (Phase 8): sign in to keep a history of dinners you created. Guests never need one. Also out of scope: password reset, profile editing, payments, notifications, an admin dashboard, analytics, allergy guarantees, Redis, Kafka, RabbitMQ, microservices, and Docker.

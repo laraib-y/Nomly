@@ -1,9 +1,12 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import Link from "next/link";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { useAuth } from "@/components/AuthProvider";
 import { VoiceInput } from "@/components/VoiceInput";
+import { loginHref } from "@/lib/account";
 import { createSession } from "@/lib/api";
 import { saveIdentity } from "@/lib/storage";
 
@@ -16,6 +19,10 @@ export default function CreatePage() {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [spoken, setSpoken] = useState(false);
+
+  useEffect(() => {
+    if (user) setNickname((current) => current || user.display_name.slice(0, 24));
+  }, [user]);
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();

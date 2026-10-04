@@ -1,52 +1,31 @@
 "use client";
 
-import { useState } from "react";
-
-import { cuisineWash, formatPrice } from "@/lib/format";
+import { ContactDetails, FoodPhoto, RatingPrice } from "@/components/RestaurantInfo";
+import { NOT_AVAILABLE, formatCuisine } from "@/lib/format";
 import type { Restaurant } from "@/types";
 
 export function RestaurantCard({ restaurant }: { restaurant: Restaurant }) {
-  const [imageFailed, setImageFailed] = useState(false);
-  const showImage = Boolean(restaurant.image_url) && !imageFailed;
-  const price = formatPrice(restaurant.price);
-  const rating = restaurant.rating != null ? restaurant.rating.toFixed(1) : null;
-  const chip = "rounded-full border border-ink/15 px-3 py-0.5 text-ink-soft";
+  const cuisine = formatCuisine(restaurant.cuisine, restaurant.categories);
 
   return (
-    <article className="flex aspect-square w-full flex-col overflow-hidden rounded-3xl border border-ink/10 bg-card shadow-[0_8px_24px_-12px_rgba(36,28,24,0.18)]">
-      <div
-        className="relative min-h-0 flex-1 border-b-[3px] border-ink"
-        style={{ background: cuisineWash(restaurant.cuisine) }}
-      >
-        {showImage ? (
-          // External place photos are optional and may fail. The colored wash stays underneath.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={restaurant.image_url as string}
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover"
-            onError={() => setImageFailed(true)}
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/assets/IMG_8293.webp" alt="" className="h-[85%] w-auto object-contain" />
-          </div>
-        )}
-      </div>
+    <article className="flex w-full flex-col overflow-hidden rounded-3xl bg-[#fffaf3] shadow-[0_10px_30px_-14px_rgba(36,28,24,0.28)]">
+      <FoodPhoto restaurant={restaurant} className="aspect-[2/1] w-full border-b-[3px] border-ink" />
 
-      <div className="px-5 pb-4 pt-3">
-        <h2 className="line-clamp-2 text-3xl leading-tight">{restaurant.name}</h2>
-        <div className="mt-2 flex flex-wrap gap-2 text-sm">
-          {restaurant.cuisine ? <span className={`${chip} bg-croc`}>{restaurant.cuisine}</span> : null}
-          {price ? <span className={`${chip} bg-paper-deep`}>{price}</span> : null}
-          {rating ? <span className={`${chip} bg-card`}>★ {rating}</span> : null}
+      <div className="space-y-3 px-5 pb-5 pt-3">
+        <div className="min-w-0">
+          <h2 className="line-clamp-2 break-words text-2xl leading-tight sm:text-3xl" title={restaurant.name}>
+            {restaurant.name}
+          </h2>
+          <p className="mt-1 text-sm text-ink-soft">
+            {cuisine ?? (
+              <>
+                <span className="text-ink">Cuisine</span> · {NOT_AVAILABLE}
+              </>
+            )}
+          </p>
         </div>
-        {restaurant.description ? (
-          <p className="mt-2 line-clamp-2 text-sm leading-snug text-ink-soft">{restaurant.description}</p>
-        ) : restaurant.address ? (
-          <p className="mt-2 truncate text-sm text-ink-soft">{restaurant.address}</p>
-        ) : null}
+        <RatingPrice restaurant={restaurant} />
+        <ContactDetails restaurant={restaurant} />
       </div>
     </article>
   );

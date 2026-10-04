@@ -7,10 +7,13 @@ Deduplication prefers a provider id, then a normalized name near the same point.
 import math
 import re
 import unicodedata
+from urllib.parse import urlsplit
 
 from app.schemas.restaurant import RestaurantCandidate
 
 NAME_DISTANCE_METERS = 180
+PHONE_MAX_LENGTH = 40
+URL_MAX_LENGTH = 512
 
 
 def dedupe_restaurants(restaurants: list[RestaurantCandidate]) -> list[RestaurantCandidate]:
@@ -50,6 +53,39 @@ def valid_coordinate(latitude: float | None, longitude: float | None) -> tuple[f
     if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
         return None
     return latitude, longitude
+
+
+def safe_web_url(value: object) -> str | None:
+    """Return a provider URL only if it is a plain http(s) link. Anything else is dropped, never repaired."""
+
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    if not text or len(text) > URL_MAX_LENGTH or any(char.isspace() or ord(char) < 32 for char in text):
+        return None
+    if text.lower().startswith("www."):
+        text = f"https://{text}"
+    try:
+        parts = urlsplit(text)
+    except ValueError:
+        return None
+    if parts.scheme.lower() not in {"http", "https"} or not parts.hostname or parts.username or parts.password:
+        return None
+    return text
+
+
+def clean_phone(value: object) -> str | None:
+    """First phone number from a provider value such as "+1 604-555-0100; +1 604-555-0101"."""
+
+    if not isinstance(value, str):
+        return None
+    first = re.split(r"[;,]", value, maxsplit=1)[0].strip()
+    if not re.fullmatch(r"\+?[\d\s().\-]+", first):
+        return None
+    digits = re.sub(r"\D", "", first)
+    if not 7 <= len(digits) <= 15:
+        return None
+    return first[:PHONE_MAX_LENGTH]
 
 
 def _same_place(left: RestaurantCandidate, right: RestaurantCandidate) -> bool:

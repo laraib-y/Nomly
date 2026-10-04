@@ -9,6 +9,7 @@ from sqlalchemy.pool import StaticPool
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.models import Base
+from app.services.auth.rate_limit import login_limiter, register_limiter
 
 
 @pytest.fixture(autouse=True)
@@ -18,6 +19,8 @@ def isolated_settings(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, 
     monkeypatch.setenv("ELEVENLABS_API_KEY", "")
     monkeypatch.setenv("DATABASE_URL", "sqlite://")
     get_settings.cache_clear()
+    login_limiter.reset()
+    register_limiter.reset()
     yield
     get_settings.cache_clear()
 
