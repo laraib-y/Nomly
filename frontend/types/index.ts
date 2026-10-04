@@ -3,7 +3,7 @@ export type DinnerIntent = {
   cuisines: string[];
   price_level: number | null;
   location: string | null;
-  radius: number;
+  radius: number | null;
   vibe: string | null;
   dietary_preferences?: string[];
 };

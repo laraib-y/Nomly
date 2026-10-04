@@ -4,7 +4,7 @@ import logging
 import re
 
 from app.core.exceptions import BadRequestError, ConflictError
-from app.schemas.ai import DinnerIntent
+from app.schemas.ai import DinnerIntent, search_radius_meters
 from app.schemas.restaurant import RestaurantCandidate
 from app.services.restaurants.base import RestaurantProvider, RestaurantProviderError
 from app.services.restaurants.mock import MockRestaurantProvider
@@ -37,7 +37,7 @@ class RestaurantSearchService:
             intent.cuisines or ["any"],
             intent.price_level,
             intent.location or "unspecified",
-            intent.radius,
+            search_radius_meters(intent),
         )
         raw = self._load_candidates(intent)
         deduped = dedupe_restaurants(raw)

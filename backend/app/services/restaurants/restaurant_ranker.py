@@ -20,7 +20,7 @@ labeled it that way. They are not a safety guarantee.
 
 from dataclasses import dataclass
 
-from app.schemas.ai import DinnerIntent
+from app.schemas.ai import DinnerIntent, search_radius_meters
 from app.schemas.restaurant import RestaurantCandidate
 from app.services.restaurants.restaurant_normalizer import distance_meters, valid_coordinate
 
@@ -59,7 +59,8 @@ def apply_hard_constraints(
             continue
         if center is not None:
             point = valid_coordinate(restaurant.latitude, restaurant.longitude)
-            if point is not None and distance_meters(center[0], center[1], point[0], point[1]) > intent.radius:
+            limit = search_radius_meters(intent)
+            if point is not None and distance_meters(center[0], center[1], point[0], point[1]) > limit:
                 continue
         kept.append(restaurant)
     return kept
@@ -153,12 +154,13 @@ def _location_factor(
     center: tuple[float, float] | None,
 ) -> float:
     point = valid_coordinate(restaurant.latitude, restaurant.longitude)
-    if center is None or point is None or intent.radius <= 0:
+    limit = search_radius_meters(intent)
+    if center is None or point is None or limit <= 0:
         return 0.6
     distance = distance_meters(center[0], center[1], point[0], point[1])
-    if distance > intent.radius:
+    if distance > limit:
         return 0.0
-    return 1 - (distance / intent.radius)
+    return 1 - (distance / limit)
 
 
 def _rating_factor(rating: float | None) -> float:
