@@ -93,7 +93,7 @@ export default function CreatePage() {
         <button
           type="submit"
           disabled={pending}
-          className="w-full rounded-full bg-chili px-5 py-3 text-white disabled:opacity-60"
+          className="button-orange w-full rounded-full px-5 py-3 disabled:opacity-60"
         >
           {pending ? "Finding restaurants..." : "Create dinner"}
         </button>

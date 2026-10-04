@@ -132,8 +132,13 @@ export function Lobby({ roomCode }: { roomCode: string }) {
           </ul>
           {error ? <p className="mt-3 text-sm text-[#c45a56]">{error}</p> : null}
           {isHost ? (
-            <button type="button" onClick={() => void onStart()} disabled={pending || !session} className={pill}>
-              {pending ? "Starting..." : "Start"}
+            <button
+              type="button"
+              onClick={() => void onStart()}
+              disabled={pending || !session}
+              className="button-orange mt-6 w-full rounded-full px-5 py-3 disabled:opacity-60"
+            >
+              {pending ? "Starting..." : "Start dinner"}
             </button>
           ) : (
             <button type="button" disabled className={pill}>
