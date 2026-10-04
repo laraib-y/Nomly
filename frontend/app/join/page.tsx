@@ -6,13 +6,7 @@ import { useRouter } from "next/navigation";
 import { joinSession } from "@/lib/api";
 import { saveIdentity } from "@/lib/storage";
 
-const panel = "rounded-3xl border border-ink/10 bg-[#fbf8f2]";
-const box = "rounded-2xl border border-ink/15 bg-card";
-const fieldInput = `${box} w-full px-4 py-3 text-lg outline-none placeholder:text-ink/40 transition-colors focus:border-[#2f4a22]/60 focus:bg-[#fffaf3] focus:ring-2 focus:ring-[#b5c384]`;
-const pill =
-  "mt-5 h-12 w-full rounded-2xl bg-[#b5c384] text-lg text-[#1f3315] transition duration-100 enabled:hover:bg-[#a9b975] enabled:active:scale-[0.98] disabled:opacity-60";
-
-  export default function JoinPage() {
+export default function JoinPage() {
   const router = useRouter();
   const [code, setCode] = useState("");
   const [nickname, setNickname] = useState("");
@@ -39,7 +33,7 @@ const pill =
     <section className="mx-auto w-full max-w-[600px] px-4 pt-10 font-serif">
       <h1 className="text-center text-5xl leading-tight">Got the code?</h1>
 
-      <form onSubmit={onSubmit} className={`${panel} mt-10 p-6 sm:p-8`}>
+      <form onSubmit={onSubmit} className="form-panel mt-10 p-6 sm:p-8">
         <label htmlFor="room-code" className="block text-lg">
           Room code
         </label>
@@ -50,7 +44,7 @@ const pill =
           autoCapitalize="characters"
           value={code}
           onChange={(event) => setCode(event.target.value)}
-          className={`mt-2 uppercase tracking-[0.2em] ${fieldInput}`}
+          className="form-field mt-2 uppercase tracking-[0.2em]"
         />
 
         <label htmlFor="nickname" className="mt-5 block text-lg">
@@ -62,12 +56,16 @@ const pill =
           autoComplete="off"
           value={nickname}
           onChange={(event) => setNickname(event.target.value)}
-          className={`mt-2 ${fieldInput}`}
+          className="form-field mt-2"
         />
 
-        {error ? <p className="mt-4 text-sm text-[#c45a56]">{error}</p> : null}
+        {error ? <p className="form-error mt-4 text-sm">{error}</p> : null}
 
-        <button type="submit" disabled={pending} className={pill}>
+        <button
+          type="submit"
+          disabled={pending}
+          className="button-primary mt-5 h-12 w-full rounded-2xl text-lg disabled:opacity-60"
+        >
           {pending ? "Joining..." : "Join your friends!"}
         </button>
       </form>

@@ -81,9 +81,8 @@ export function Lobby({ roomCode }: { roomCode: string }) {
 
   // Light border box, same as the other pages.
   const box = "rounded-2xl border border-ink/15 bg-card";
-  const field = `${box} w-full px-4 py-3 text-lg outline-none placeholder:text-ink/40 transition-colors focus:border-[#2f4a22]/60 focus:bg-[#fffaf3] focus:ring-2 focus:ring-[#b5c384]`;
-    const pill =
-    "mt-5 h-12 w-full rounded-2xl bg-[#b5c384] text-lg text-[#1f3315] transition duration-100 enabled:hover:bg-[#a9b975] enabled:active:scale-[0.98] disabled:opacity-60";
+  const field = "form-field";
+  const pill = "button-primary mt-5 h-12 w-full rounded-2xl text-lg disabled:opacity-60";
     
   return (
     <section className="mx-auto w-full max-w-[360px] pt-6 font-serif">
@@ -113,7 +112,7 @@ export function Lobby({ roomCode }: { roomCode: string }) {
             placeholder="Name"
             className={`mt-5 ${field}`}
           />
-          {error ? <p className="mt-3 text-sm text-[#c45a56]">{error}</p> : null}
+          {error ? <p className="form-error mt-3 text-sm">{error}</p> : null}
           <button type="submit" disabled={pending} className={pill}>
             {pending ? "Joining..." : "Join room"}
           </button>
@@ -126,7 +125,7 @@ export function Lobby({ roomCode }: { roomCode: string }) {
               <li
                 key={person.id}
                 className={`${box} flex items-center justify-between px-4 py-2 text-lg ${
-                  person.is_host ? "!bg-[#fffaf3]" : ""
+                  person.is_host ? "!bg-card" : ""
                 }`}
               >
                 <span>{person.nickname}</span>
@@ -134,13 +133,13 @@ export function Lobby({ roomCode }: { roomCode: string }) {
               </li>
             ))}
           </ul>
-          {error ? <p className="mt-3 text-sm text-[#c45a56]">{error}</p> : null}
+          {error ? <p className="form-error mt-3 text-sm">{error}</p> : null}
           {isHost ? (
             <button
               type="button"
               onClick={() => void onStart()}
               disabled={pending || !session}
-              className="button-orange mt-6 w-full rounded-full px-5 py-3 disabled:opacity-60"
+              className="button-primary mt-6 w-full rounded-2xl px-5 py-3 text-lg disabled:opacity-60"
             >
               {pending ? "Starting..." : "Start dinner"}
             </button>

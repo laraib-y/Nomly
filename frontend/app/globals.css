@@ -5,7 +5,7 @@
 .header1 {
   margin-top: 1rem;
   max-width: 36rem;
-  color: #241c18;
+  color: var(--ink);
   font-family: var(--font-serif), Georgia, serif;
   font-size: 3rem;
   line-height: 1.05;
@@ -13,14 +13,13 @@
 
 .header2 {
   margin-top: 0.75rem;
-  color: #241c18;
-  font-family: var(--font-serif), Georgia, serif;
+  color: var(--ink);
   font-size: 1.5rem;
   line-height: 2rem;
 }
 
 .eyebrow {
-  color: #d84a2f;
+  color: var(--sage-dark);
   font-size: 0.875rem;
   font-weight: 500;
   letter-spacing: 0.22em;
@@ -30,13 +29,13 @@
 .lead-copy {
   margin-top: 1.5rem;
   max-width: 32rem;
-  color: #5e554e;
+  color: var(--ink-soft);
   font-size: 1.125rem;
   line-height: 1.625;
 }
 
 .step-number {
-  color: #c9842a;
+  color: var(--sage-dark);
   font-size: 0.75rem;
   letter-spacing: 0.18em;
   line-height: 1rem;
@@ -44,7 +43,7 @@
 
 .step-copy {
   margin-top: 0.5rem;
-  color: #5e554e;
+  color: var(--ink-soft);
   font-size: 0.875rem;
   line-height: 1.625;
 }
@@ -57,15 +56,26 @@
 
 :root {
   color-scheme: light;
+  --page-bg: #f4efe6;
+  --surface: #fbf8f2;
+  --surface-raised: #fffaf3;
+  --ink: #241c18;
+  --ink-soft: #5e554e;
+  --sage: #b5c384;
+  --sage-hover: #a9b975;
+  --sage-ink: #1f3315;
+  --sage-dark: #8ea35e;
+  --coral: #c45a56;
+  --line: #e2e0d7;
 }
 
 body {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(216, 74, 47, 0.08), transparent 28%),
-    radial-gradient(circle at 90% 10%, rgba(31, 107, 74, 0.08), transparent 24%),
-    #f4efe6;
-  color: #241c18;
+    radial-gradient(circle at top left, rgba(196, 90, 86, 0.04), transparent 28%),
+    radial-gradient(circle at 90% 10%, rgba(181, 195, 132, 0.1), transparent 24%),
+    var(--page-bg);
+  color: var(--ink);
 }
 
 button,
@@ -74,9 +84,46 @@ textarea {
   font: inherit;
 }
 
-.button-orange {
-  background-color: #ff812f;
-  color: #fff;
+.form-panel {
+  border: 1px solid rgba(36, 28, 24, 0.1);
+  border-radius: 1.5rem;
+  background-color: var(--surface);
+}
+
+.form-field {
+  width: 100%;
+  border: 1px solid rgba(36, 28, 24, 0.15);
+  border-radius: 1rem;
+  background-color: var(--surface-raised);
+  padding: 0.75rem 1rem;
+  font-size: 1.125rem;
+  line-height: 1.5;
+  outline: none;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.form-field:focus {
+  border-color: rgba(47, 74, 34, 0.6);
+  box-shadow: 0 0 0 2px var(--sage);
+}
+
+.button-primary {
+  background-color: var(--sage);
+  color: var(--sage-ink);
+}
+
+.button-primary:enabled:hover {
+  background-color: var(--sage-hover);
+}
+
+.button-secondary {
+  border: 1px solid rgba(36, 28, 24, 0.15);
+  background-color: var(--surface-raised);
+  color: var(--ink);
+}
+
+.form-error {
+  color: var(--coral);
 }
 
 .voice-bars span {

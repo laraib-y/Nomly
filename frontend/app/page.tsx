@@ -19,10 +19,10 @@ export default function HomePage() {
           actually agrees on.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
-          <Link href="/create" className="button-orange rounded-full px-6 py-3 shadow-card">
+          <Link href="/loading/create" className="button-primary rounded-full px-6 py-3 shadow-card">
             Create a dinner
           </Link>
-          <Link href="/join" className="rounded-full border border-ink/15 bg-card px-6 py-3">
+          <Link href="/loading/join" className="button-secondary rounded-full px-6 py-3">
             Join with a code
           </Link>
         </div>

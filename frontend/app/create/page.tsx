@@ -41,22 +41,21 @@ export default function CreatePage() {
   }
 
   return (
-    <section className="mx-auto max-w-2xl pt-6">
-      <p className="text-sm uppercase tracking-[0.2em] text-chili">Create dinner</p>
-      <h1 className="mt-3 font-serif text-5xl">What are you looking for?</h1>
-      <form onSubmit={onSubmit} className="mt-8 space-y-5 rounded-[28px] border border-line bg-card p-6 shadow-card">
-        <label className="block">
-          <span className="text-sm text-ink-soft">Your name</span>
+    <section className="mx-auto w-full max-w-[600px] px-4 pt-10 font-serif">
+      <h1 className="text-center text-5xl leading-tight">What are you looking for?</h1>
+      <form onSubmit={onSubmit} className="form-panel mt-10 space-y-5 p-6 sm:p-8">
+        <label className="block text-lg">
+          <span>Your name</span>
           <input
             required
             value={nickname}
             onChange={(event) => setNickname(event.target.value)}
             placeholder="Abdalla"
-            className="mt-2 w-full rounded-2xl border border-line bg-paper px-4 py-3 outline-none focus:border-chili"
+            className="form-field mt-2"
           />
         </label>
-        <label className="block">
-          <span className="text-sm text-ink-soft">Describe the night</span>
+        <label className="block text-lg">
+          <span>Describe the night</span>
           <p className="mt-1 text-sm text-ink-soft">
             Plain language is enough. Location and group size below are used as you type them.
           </p>
@@ -65,11 +64,8 @@ export default function CreatePage() {
             minLength={3}
             rows={5}
             value={description}
-            onChange={(event) => {
-              setSpoken(false);
-              setDescription(event.target.value);
-            }}
-            className="mt-2 w-full rounded-2xl border border-line bg-paper px-4 py-3 outline-none focus:border-chili"
+            onChange={(event) => setDescription(event.target.value)}
+            className="form-field mt-2"
           />
           {spoken ? <p className="mt-2 text-sm text-ink-soft">You said this. Edit it if anything is off.</p> : null}
         </label>
@@ -81,32 +77,32 @@ export default function CreatePage() {
           }}
         />
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="block">
-            <span className="text-sm text-ink-soft">Group size</span>
+          <label className="block text-lg">
+            <span>Group size</span>
             <input
               type="number"
               min={1}
               max={20}
               value={groupSize}
               onChange={(event) => setGroupSize(Number(event.target.value))}
-              className="mt-2 w-full rounded-2xl border border-line bg-paper px-4 py-3 outline-none focus:border-chili"
+              className="form-field mt-2"
             />
           </label>
-          <label className="block">
-            <span className="text-sm text-ink-soft">Location</span>
+          <label className="block text-lg">
+            <span>Location</span>
             <input
               required
               value={location}
               onChange={(event) => setLocation(event.target.value)}
-              className="mt-2 w-full rounded-2xl border border-line bg-paper px-4 py-3 outline-none focus:border-chili"
+              className="form-field mt-2"
             />
           </label>
         </div>
-        {error ? <p className="text-sm text-chili">{error}</p> : null}
+        {error ? <p className="form-error text-sm">{error}</p> : null}
         <button
           type="submit"
           disabled={pending}
-          className="button-orange w-full rounded-full px-5 py-3 disabled:opacity-60"
+          className="button-primary w-full rounded-2xl py-3 text-lg disabled:opacity-60"
         >
           {pending ? "Finding restaurants..." : spoken ? "Find dinner" : "Create dinner"}
         </button>

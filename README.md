@@ -1,10 +1,8 @@
 # Nomly
 
-Stop arguing. Let the group decide.
+Do your plans never seem to leave the group chat? 
 
-Nomly is a small multiplayer dinner picker. A host describes the night, friends join a room, everyone swipes the same restaurants in private, and a Python matching engine ranks the places the group actually agrees on.
-
-Nomly does not require Docker for local development.
+Nomly is a multiplayer dinner picker. A host describes the night with the constraints that everyone has, friends join a room, everyone swipes the same restaurants in private, and a Python matching engine ranks the places the group actually agrees on.
 
 ## Problem
 
@@ -59,7 +57,7 @@ That request becomes Japanese and Korean, Burnaby, a low price level, a casual v
 
 ## Setup
 
-Install Node.js, npm, Python 3.11+, and pip. Install MySQL 8 locally, or use a TiDB Cloud database. Do not start a container for this project.
+Install Node.js 20 LTS and npm, Python 3.11+ and pip, and either MySQL 8 locally or access to a TiDB Cloud database. The frontend and backend run as separate processes; Docker is not required.
 
 ### Database
 
@@ -84,7 +82,7 @@ On Windows PowerShell:
 Copy-Item .env.example .env
 ```
 
-Set `DATABASE_URL`:
+Edit the root `.env` and set `DATABASE_URL` to your MySQL or TiDB connection:
 
 ```env
 DATABASE_URL=mysql+pymysql://dineoff:dineoff@localhost:3306/dineoff
@@ -96,9 +94,11 @@ For TiDB Cloud, use the host from the TiDB console and include `ssl=true`. Hosts
 DATABASE_URL=mysql+pymysql://USER:PASSWORD@gateway01.example.prod.aws.tidbcloud.com:4000/dineoff?ssl=true
 ```
 
-Leave `GEMINI_API_KEY` and `GEOAPIFY_API_KEY` empty until you have credentials. The app still runs.
+Leave `GEMINI_API_KEY` and `GEOAPIFY_API_KEY` empty to use the mock providers. A running MySQL or TiDB database is still required by the API.
 
 `NEXT_PUBLIC_API_URL` is the only value the browser needs. The frontend defaults to `http://localhost:8000` if it is unset. Do not put `DATABASE_URL`, `GEMINI_API_KEY`, `GEOAPIFY_API_KEY`, or `ELEVENLABS_API_KEY` in frontend code.
+
+The backend reads the repository-root `.env` and `backend/.env` (values in `backend/.env` take precedence). Next.js reads frontend settings from `frontend/.env.local`, not the repository-root `.env`.
 
 ### Backend
 
@@ -110,7 +110,7 @@ python -m venv .venv
 Windows:
 
 ```powershell
-.venv\Scripts\activate
+.\.venv\Scripts\Activate.ps1
 ```
 
 macOS and Linux:
@@ -135,11 +135,11 @@ Open a second terminal:
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
-The app listens on `http://localhost:3000`.
+The app listens on `http://localhost:3000`. To verify a production build, run `npm run build`; to serve that build, run `npm start` from `frontend`.
 
 Optional, if you want the URL explicit:
 
@@ -158,11 +158,12 @@ Frontend:  http://localhost:3000
 Backend:   http://localhost:8000
 ```
 
-1. Open Create dinner and describe the meal. You get a room code such as `AB7KQ2`.
-2. Friends open Join dinner, enter the code and a nickname, and land in the lobby.
-3. Only the host can start. Starting opens the same restaurant deck for everyone.
-4. Each person swipes Like or Pass. The room sees how many people have finished, not who liked what.
-5. When everyone finishes, the match screen shows the group result.
+1. Open `http://localhost:3000`. Select Create a dinner or Join with a code; the loading GIF plays for five seconds before its form opens.
+2. The host enters a name, dinner description, location, and group size. Creating a dinner searches for restaurants and opens a lobby with a room code such as `AB7KQ2`.
+3. Friends enter that room code and their name on the Join form, then land in the lobby.
+4. Only the host can start. Starting opens the same restaurant deck for everyone.
+5. Each person swipes Like or Pass. The room sees how many people have finished, not who liked what.
+6. When everyone finishes, the match screen shows the group result.
 
 A browser tab remembers its temporary name for that tab only, so you can demo several people from one computer by using separate windows or tabs.
 
@@ -175,6 +176,8 @@ python -m pytest
 ```
 
 The tests cover sessions, room codes, joining, host authorization, restaurant normalization, deduplication, relevance ranking, deck diversity, mock and Geoapify fallbacks, dinner-intent extraction, Gemini response validation, Gemini failure fallback, swipes, the 80% match case, ranking ties, WebSocket events, grounded semantic text, mock embeddings, combined ranking, and semantic fallback. They do not call live Gemini, Geoapify, or TiDB Cloud.
+
+The test fixtures use an isolated in-memory SQLite database and mock external providers, so the backend tests do not require MySQL, Gemini, or Geoapify credentials.
 
 ## Architecture
 
@@ -232,7 +235,7 @@ Restaurants are fetched once when the room is created and reused for every swipe
 
 | Variable | Where it is used | Required |
 | --- | --- | --- |
-| `DATABASE_URL` | Backend, MySQL or TiDB | Yes |
+| `DATABASE_URL` | Backend and migrations, MySQL or TiDB | Required for local API, not tests |
 | `GEMINI_API_KEY` | Backend only. Intent parsing and embeddings | No |
 | `GEOAPIFY_API_KEY` | Backend only | No |
 | `ELEVENLABS_API_KEY` | Backend only. Speech-to-text and optional spoken replies | No |
