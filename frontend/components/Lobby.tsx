@@ -70,61 +70,80 @@ export function Lobby({ roomCode }: { roomCode: string }) {
     }
   }
 
-  if (!ready) return <p className="pt-16 text-ink-soft">Opening the room...</p>;
+  if (!ready) return <p className="pt-16 text-center text-ink-soft">Opening the room...</p>;
 
   const isHost = Boolean(session && identity && session.host_participant_id === identity.participantId);
+  const code = roomCode.toUpperCase();
 
+  // Light border box, same as the other pages.
+  const box = "rounded-2xl border border-ink/15 bg-card";
+  const field = `${box} w-full px-4 py-3 text-lg outline-none placeholder:text-ink/40 transition-colors focus:border-[#2f4a22]/60 focus:bg-[#fffaf3] focus:ring-2 focus:ring-[#b5c384]`;
+    const pill =
+    "mt-5 h-12 w-full rounded-2xl bg-[#b5c384] text-lg text-[#1f3315] transition duration-100 enabled:hover:bg-[#a9b975] enabled:active:scale-[0.98] disabled:opacity-60";
+    
   return (
-    <section className="mx-auto max-w-xl pt-4">
-      <p className="text-sm uppercase tracking-[0.2em] text-chili">Nomly</p>
-      <div className="mt-3 flex items-end justify-between gap-4">
+    <section className="mx-auto w-full max-w-[360px] pt-6 font-serif">
+      <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-ink-soft">Room</p>
-          <h1 className="font-serif text-6xl tracking-[0.12em]">{roomCode.toUpperCase()}</h1>
+          <p className="text-lg">Room</p>
+          <h1 className="text-5xl leading-none">{code}</h1>
+          <button
+            type="button"
+            onClick={() => void copyCode()}
+            className="mt-2 text-sm text-ink-soft underline underline-offset-4"
+          >
+            {copied ? "Copied" : "Copy code"}
+          </button>
         </div>
-        <button type="button" onClick={() => void copyCode()} className="rounded-full border border-line bg-card px-4 py-2 text-sm">
-          {copied ? "Copied" : "Copy code"}
-        </button>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/assets/chef_hat.webp" alt="" className="w-24" />
       </div>
 
       {!identity ? (
-        <form onSubmit={onJoin} className="mt-8 space-y-4 rounded-[28px] border border-line bg-card p-6">
-          <h2 className="font-serif text-3xl">Join this dinner</h2>
+        <form onSubmit={onJoin} className="mt-6">
+          <h2 className="text-center text-2xl">Join this dinner</h2>
           <input
             required
             value={nickname}
             onChange={(event) => setNickname(event.target.value)}
-            placeholder="Your name"
-            className="w-full rounded-2xl border border-line bg-paper px-4 py-3 outline-none focus:border-chili"
+            placeholder="Name"
+            className={`mt-5 ${field}`}
           />
-          {error ? <p className="text-sm text-chili">{error}</p> : null}
-          <button type="submit" disabled={pending} className="w-full rounded-full bg-ink px-5 py-3 text-paper">
+          {error ? <p className="mt-3 text-sm text-[#c45a56]">{error}</p> : null}
+          <button type="submit" disabled={pending} className={pill}>
             {pending ? "Joining..." : "Join room"}
           </button>
         </form>
       ) : (
-        <div className="mt-8 rounded-[28px] border border-line bg-card p-6 shadow-card">
-          <h2 className="font-serif text-3xl">Who&apos;s coming?</h2>
-          <ul className="mt-5 space-y-3">
+        <div className="mt-6">
+          <h2 className="text-center text-2xl">Who&apos;s late?</h2>
+          <ul className="mt-5 space-y-2">
             {(session?.participants || []).map((person) => (
-              <li key={person.id} className="flex items-center justify-between rounded-2xl bg-paper px-4 py-3">
+              <li
+                key={person.id}
+                className={`${box} flex items-center justify-between px-4 py-2 text-lg ${
+                  person.is_host ? "!bg-[#fffaf3]" : ""
+                }`}
+              >
                 <span>{person.nickname}</span>
-                {person.is_host ? <span className="text-xs uppercase tracking-[0.16em] text-gold">Host</span> : null}
+                {person.is_host ? <span className="text-xs uppercase tracking-[0.16em] text-ink-soft">Host</span> : null}
               </li>
             ))}
           </ul>
-          {error ? <p className="mt-5 text-sm text-chili">{error}</p> : null}
+          {error ? <p className="mt-3 text-sm text-[#c45a56]">{error}</p> : null}
           {isHost ? (
             <button
               type="button"
               onClick={() => void onStart()}
               disabled={pending || !session}
-              className="mt-6 w-full rounded-full bg-chili px-5 py-3 text-white disabled:opacity-60"
+              className="button-orange mt-6 w-full rounded-full px-5 py-3 disabled:opacity-60"
             >
               {pending ? "Starting..." : "Start dinner"}
             </button>
           ) : (
-            <p className="mt-6 text-center text-ink-soft">Waiting for the host...</p>
+            <button type="button" disabled className={pill}>
+              Waiting for the host...
+            </button>
           )}
         </div>
       )}

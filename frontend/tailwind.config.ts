@@ -15,6 +15,13 @@ const config: Config = {
         gold: "#c9842a",
         card: "#fffaf3",
         line: "#e3d8c8",
+        canvas: "#fcfcfc",
+        fill: "#d9d9d9",
+        coral: "#d96b67",
+        croc: "#b5c384",
+        "croc-dark": "#8ea35e",
+        orange: "#ee8f55",
+        "coral-dark": "#c45a56",
       },
       fontFamily: {
         serif: ["var(--font-serif)", "Georgia", "serif"],
