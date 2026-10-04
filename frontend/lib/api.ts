@@ -23,7 +23,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       cache: "no-store",
     });
   } catch {
-    throw new ApiError(0, "Can't reach the DineOff API. Start the backend on port 8000.");
+    throw new ApiError(0, "Can't reach the Nomly API. Start the backend on port 8000.");
   }
 
   if (!response.ok) {

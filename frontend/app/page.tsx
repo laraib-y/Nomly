@@ -16,7 +16,7 @@ export default function HomePage() {
           Stop arguing. Let the group decide.
         </h1>
         <p className="mt-6 max-w-lg text-lg leading-relaxed text-ink-soft">
-          Describe the night, invite your friends, and swipe the same restaurants. DineOff finds the place your table
+          Describe the night, invite your friends, and swipe the same restaurants. Nomly finds the place your table
           actually agrees on.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">

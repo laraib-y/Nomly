@@ -16,7 +16,7 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "DineOff",
+  title: "Nomly",
   description: "Stop arguing. Let the group decide where to eat.",
 };
 
