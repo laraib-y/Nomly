@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, Outfit } from "next/font/google";
+import { Arbutus_Slab, Fraunces, Outfit } from "next/font/google";
 
 import { AuthProvider } from "@/components/AuthProvider";
 import { Header } from "@/components/Header";
@@ -14,6 +14,12 @@ const fraunces = Fraunces({
 const outfit = Outfit({
   subsets: ["latin"],
   variable: "--font-sans",
+});
+
+const display = Arbutus_Slab({
+  subsets: ["latin"],
+  variable: "--font-display",
+  weight: "400",
 });
 
 export const metadata: Metadata = {
