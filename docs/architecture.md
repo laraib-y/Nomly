@@ -17,7 +17,7 @@ MySQL or TiDB Cloud
 
 ## Request path
 
-1. The host describes dinner in plain language. `POST /api/sessions` asks `AIService` for a `DinnerIntent`.
+1. The host describes dinner in plain language, by typing or by speaking. Speech is transcribed at `POST /api/voice/transcribe` and the text is sent through the same `POST /api/sessions` path. `SessionService` asks `AIService` for a `DinnerIntent`.
 2. Pydantic validates that intent. The raw model text is never interpolated into SQL. Explicit location and group size from the form replace anything the parser inferred for those fields.
 3. `RestaurantSearchService` asks `RestaurantProvider` for candidates, then normalizes, deduplicates, applies hard constraints, ranks, and stores one diverse deck of up to 15 restaurants. Swiping reads that stored deck.
 4. Friends join with a room code and a nickname. There are no accounts.
@@ -118,7 +118,7 @@ Diversity Selection
 
 Phase 4 ranks the shared deck after everyone has chosen. Gemini does not pick the winner.
 
-Each person can pass, like, super like once, or veto once. A normal like/pass round still uses the original result: four likes out of five is 80%, and a higher rating breaks an equal like count.
+Each person can pass, like, super like once, or veto once. A higher rating breaks an otherwise equal result.
 
 Satisfaction is 0 for a pass, 1 for a like, and 2 for a super like. A veto, a known price above the budget, a known distance past the requested radius, or a labeled place that misses a stated diet cannot win. Missing price, distance, or labels are not treated as violations, and a diet label is not an allergy guarantee.
 
@@ -132,6 +132,40 @@ Restaurant B: five Likes
 B wins. A is more exciting for two people, and B is acceptable to everyone.
 
 Explanations are built in Python from counts only. They can say that a place was eliminated by a group veto. They do not name who liked or vetoed it.
+
+### Phase 6.2: Matching transparency and result consistency
+
+Problem found. A winner could show 67% while an alternative showed 100%, and the card could say "2 of 3 liked" while the explanation said "3 of 3 positive". The percentage was `likes / participants`, so it ignored Super Likes. The explanation counted Like and Super Like as positive. The ranking used the 0 to 2 satisfaction values. Three parts of the result used three different meanings. The ranking itself was correct.
+
+Canonical definitions, used by the API, the explanation, and the UI:
+
+```text
+PASS = 0   LIKE = 1   SUPER LIKE = 2   VETO = not a score, removes the place
+
+positives            = likes + super_likes
+satisfaction_percent = positives / participants                       (Phase 6.2.1)
+passes               = participants - likes - super_likes - vetoes   (no choice counts as a pass)
+```
+
+**Group satisfaction** represents the percentage of participants who selected Like or Super Like. The matching engine continues to use the existing weighted preference values (Pass = 0, Like = 1, Super Like = 2) for fairness ranking.
+
+So 3/3 positive is always 100%, whether the votes were Likes or Super Likes. 2 Likes and 1 Pass is 67%. 1 Like and 2 Passes is 33%. `compatibility_percent` carries the same number for older clients. The weighted values appear only as `fairness.least_satisfied_percent` and `fairness.average_satisfaction_percent`, each out of a maximum of 2 per person. Each result also has `positives`, `elimination_reason`, `rank`, and `highlight`. No field identifies a participant.
+
+The ranking is unchanged. It still sorts by the least-satisfied person first, then the weighted average, so a higher Group satisfaction can lose:
+
+```text
+Calm Kitchen: 6 Likes + 1 Super Like          100%, everyone positive
+Loud Grill:   6 Super Likes + 1 Pass           86%, one person passed      -> Calm Kitchen wins on balance
+
+Keen Taqueria: 2 Super Likes + 2 Passes        50%
+Wide Bistro:   3 Likes + 1 Pass                75%                          -> Keen Taqueria wins on stronger support
+```
+
+Both of the second pair had someone pass, so balance ties and the weighted average decides: 4 points against 3. A 100% place can only lose by breaking a hard limit or being vetoed, and the explanation says which.
+
+"Why this won" compares the winner with the ranking's own criteria, in order. If an eligible alternative had higher Group satisfaction, it names that alternative and the criterion that beat it: balance (someone passed on it) or stronger overall support (Super Likes). If a higher place was not eligible, it says why. Otherwise it gives the deciding factor: balance, Group satisfaction, stronger support, Super Likes, Likes, relevance, rating, or the fixed tie-break. The results page labels the winner "Best overall balance" or "Strongest overall support", and those alternatives "Higher satisfaction", only when that is true. It shows vetoed or out-of-limit places as "Not eligible" without saying who.
+
+Tests: `backend/tests/test_result_transparency.py` and `frontend/tests/results.test.ts`.
 
 The swipe socket still sends `swipe_progress`, `all_completed`, and `results_ready`. Progress adds how many super likes and vetoes have been used, not who used them.
 

@@ -69,6 +69,12 @@ export type RestaurantResult = {
   compatibility: number;
   compatibility_percent: number;
   explanation: string;
+  positives?: number;
+  satisfaction_percent?: number;
+  elimination_reason?: "veto" | "budget" | "distance" | "diet" | null;
+  fairness?: { least_satisfied_percent: number; average_satisfaction_percent: number } | null;
+  rank?: number;
+  highlight?: "best_balance" | "strongest_support" | "higher_satisfaction" | null;
 };
 
 export type Results = {

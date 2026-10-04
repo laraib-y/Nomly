@@ -4,7 +4,9 @@ from app.services.matching.matching_service import MatchRestaurant, MatchSwipe, 
 from tests.helpers import create_dinner
 
 
-def test_four_of_five_likes_is_80_percent():
+# Phase 6.2.1: Group satisfaction is the share of people who chose Like or
+# Super Like. Four Likes and a Pass is 4 / 5.
+def test_four_of_five_likes_is_80_percent_satisfaction():
     restaurant = MatchRestaurant(id="r1", name="Kinjo Sushi", rating=4.6)
     swipes = [
         MatchSwipe("p1", "r1", "like"),
@@ -15,10 +17,12 @@ def test_four_of_five_likes_is_80_percent():
     ]
     ranked = rank_restaurants([restaurant], swipes, participant_count=5)
     assert ranked[0].likes == 4
+    assert ranked[0].positives == 4
     assert ranked[0].total_participants == 5
     assert ranked[0].compatibility == pytest.approx(0.8)
     assert ranked[0].compatibility_percent == 80
-    assert ranked[0].explanation == "This restaurant was liked by most of your group."
+    assert ranked[0].satisfaction_percent == 80
+    assert "4 of 5 were positive (4 Likes, 0 Super Likes, 1 Pass)" in ranked[0].explanation
 
 
 def test_ranking_order_and_ties():
@@ -67,6 +71,7 @@ def test_passes_do_not_count_as_likes():
         participant_count=2,
     )
     assert ranked[0].likes == 1
+    assert ranked[0].passes == 1
     assert ranked[0].compatibility_percent == 50
 
 
@@ -116,5 +121,7 @@ def test_api_reports_80_percent_for_four_of_five(client):
     assert match["likes"] == 4
     assert match["total_participants"] == 5
     assert match["compatibility_percent"] == 80
-    assert body["top_match"]["compatibility_percent"] == 100
-    assert "most of your group" in match["explanation"] or "strongest agreement" in match["explanation"]
+    assert match["satisfaction_percent"] == 80
+    assert match["positives"] == 4
+    assert body["top_match"]["satisfaction_percent"] == 100
+    assert "4 of 5 were positive" in match["explanation"]

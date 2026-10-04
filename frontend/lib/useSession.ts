@@ -1,18 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { getSession, sessionSocketUrl } from "@/lib/api";
 import type { DinnerSession, LiveEvent, Progress } from "@/types";
 
 const MAX_SOCKET_RETRIES = 8;
 
-export function useSession(roomCode: string, participantId?: string) {
+export function useSession(roomCode: string, participantId?: string, onEvent?: (event: LiveEvent) => void) {
   const [session, setSession] = useState<DinnerSession | null>(null);
   const [progress, setProgress] = useState<Progress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
   const [eventName, setEventName] = useState<string | null>(null);
+  const onEventRef = useRef(onEvent);
+  onEventRef.current = onEvent;
 
   useEffect(() => {
     const code = roomCode.trim().toUpperCase();
@@ -68,6 +70,11 @@ export function useSession(roomCode: string, participantId?: string) {
           return;
         }
         setEventName(event.type);
+        try {
+          onEventRef.current?.(event);
+        } catch {
+          // Listeners add polish only. They must not stop room updates.
+        }
         if (event.type === "swipe_progress" || event.type === "all_completed") {
           if (typeof event.finished === "number" && typeof event.total === "number") {
             setProgress({ finished: event.finished, total: event.total });

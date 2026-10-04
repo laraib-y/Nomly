@@ -98,7 +98,7 @@ DATABASE_URL=mysql+pymysql://USER:PASSWORD@gateway01.example.prod.aws.tidbcloud.
 
 Leave `GEMINI_API_KEY` and `GEOAPIFY_API_KEY` empty until you have credentials. The app still runs.
 
-`NEXT_PUBLIC_API_URL` is the only value the browser needs. The frontend defaults to `http://localhost:8000` if it is unset. Do not put `DATABASE_URL`, `GEMINI_API_KEY`, or `GEOAPIFY_API_KEY` in frontend code.
+`NEXT_PUBLIC_API_URL` is the only value the browser needs. The frontend defaults to `http://localhost:8000` if it is unset. Do not put `DATABASE_URL`, `GEMINI_API_KEY`, `GEOAPIFY_API_KEY`, or `ELEVENLABS_API_KEY` in frontend code.
 
 ### Backend
 
@@ -235,12 +235,24 @@ Restaurants are fetched once when the room is created and reused for every swipe
 | `DATABASE_URL` | Backend, MySQL or TiDB | Yes |
 | `GEMINI_API_KEY` | Backend only. Intent parsing and embeddings | No |
 | `GEOAPIFY_API_KEY` | Backend only | No |
+| `ELEVENLABS_API_KEY` | Backend only. Speech-to-text and optional spoken replies | No |
 | `EMBEDDING_MODEL` | Backend only. Defaults to `gemini-embedding-001` | No |
 | `FRONTEND_URL` | Backend CORS for a deployed frontend | No |
 | `NEXT_PUBLIC_API_URL` | Frontend | No, defaults to `http://localhost:8000` |
 | `CORS_ORIGINS` | Backend | No |
 
-`.env.example` lists them. `.env` is gitignored. Do not create `NEXT_PUBLIC_` copies of the Gemini, Geoapify, or database credentials.
+`.env.example` lists them. `.env` is gitignored. Do not create `NEXT_PUBLIC_` copies of the Gemini, Geoapify, ElevenLabs, or database credentials.
+
+### Sound effects
+
+Swipe, lobby, matching, and winner sounds are static files in `frontend/public/audio/`. They were generated once with the ElevenLabs Sound Effects API and the app never calls ElevenLabs to play them. To regenerate them, give the key the Sound Effects permission and run:
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe scripts\generate_sounds.py --force
+```
+
+Only the winner announcement and "Hear why" call ElevenLabs at runtime, through the backend `/api/voice/speak` endpoint. Free ElevenLabs plans can only use default voices through the API, so the default voice is Sarah.
 
 ## TiDB and embeddings
 
