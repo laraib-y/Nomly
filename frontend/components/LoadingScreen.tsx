@@ -28,14 +28,15 @@ export function LoadingScreen({ destination }: { destination: string }) {
       }`}
     >
       <Image
-        src="/assets/chomp_loading.gif"
+        src="/assets/chomp.gif"
         alt="Nomly loading animation"
-        width={320}
-        height={320}
+        width={1400}
+        height={330}
         unoptimized
-        className="h-80 w-80 object-contain"
+        className="h-auto w-full max-w-xl"
       />
       <h1 className="header2 !mt-0">Loading . . .</h1>
+     
     </section>
   );
 }
