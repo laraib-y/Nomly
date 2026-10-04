@@ -1,10 +1,10 @@
-# Nomly
+# DineOff
 
 Stop arguing. Let the group decide.
 
-Nomly is a small multiplayer dinner picker. A host describes the night, friends join a room, everyone swipes the same restaurants in private, and a Python matching engine ranks the places the group actually agrees on.
+DineOff is a small multiplayer dinner picker. A host describes the night, friends join a room, everyone swipes the same restaurants in private, and a Python matching engine ranks the places the group actually agrees on.
 
-Nomly does not require Docker for local development.
+DineOff does not require Docker for local development.
 
 ## Problem
 
@@ -12,7 +12,7 @@ Groups get stuck debating restaurants. One person likes the idea, someone else h
 
 ## Solution
 
-Everyone swipes independently on one shared list. Nomly does not show individual choices during the round. When the group is finished, it ranks restaurants by how many people liked them.
+Everyone swipes independently on one shared list. DineOff does not show individual choices during the round. When the group is finished, it ranks restaurants by how many people liked them.
 
 ## MVP flow
 
@@ -54,9 +54,9 @@ Install Node.js, npm, Python 3.11+, and pip. Install MySQL 8 locally, or use a T
 Create a database and user in MySQL:
 
 ```sql
-CREATE DATABASE nomly CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'nomly'@'localhost' IDENTIFIED BY 'nomly';
-GRANT ALL PRIVILEGES ON nomly.* TO 'nomly'@'localhost';
+CREATE DATABASE dineoff CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'dineoff'@'localhost' IDENTIFIED BY 'dineoff';
+GRANT ALL PRIVILEGES ON dineoff.* TO 'dineoff'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
@@ -75,13 +75,13 @@ Copy-Item .env.example .env
 Set `DATABASE_URL`:
 
 ```env
-DATABASE_URL=mysql+pymysql://nomly:nomly@localhost:3306/nomly
+DATABASE_URL=mysql+pymysql://dineoff:dineoff@localhost:3306/dineoff
 ```
 
 For TiDB Cloud, use the host from the TiDB console and include `ssl=true`. Hosts on `tidbcloud.com` also turn SSL on automatically:
 
 ```env
-DATABASE_URL=mysql+pymysql://USER:PASSWORD@gateway01.example.prod.aws.tidbcloud.com:4000/nomly?ssl=true
+DATABASE_URL=mysql+pymysql://USER:PASSWORD@gateway01.example.prod.aws.tidbcloud.com:4000/dineoff?ssl=true
 ```
 
 Leave `GEMINI_API_KEY` and `GEOAPIFY_API_KEY` empty until you have credentials. The app still runs.
