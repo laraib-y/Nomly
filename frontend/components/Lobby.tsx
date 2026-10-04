@@ -76,7 +76,7 @@ export function Lobby({ roomCode }: { roomCode: string }) {
 
   return (
     <section className="mx-auto max-w-xl pt-4">
-      <p className="text-sm uppercase tracking-[0.2em] text-chili">DineOff</p>
+      <p className="text-sm uppercase tracking-[0.2em] text-chili">Nomly</p>
       <div className="mt-3 flex items-end justify-between gap-4">
         <div>
           <p className="text-sm text-ink-soft">Room</p>
