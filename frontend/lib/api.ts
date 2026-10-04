@@ -78,7 +78,12 @@ export function getRestaurants(roomCode: string, participantId: string) {
   return request<Restaurant[]>(`/api/sessions/${encodeURIComponent(roomCode)}/restaurants?${params}`);
 }
 
-export function sendSwipe(roomCode: string, participantId: string, restaurantId: string, decision: "like" | "pass") {
+export function sendSwipe(
+  roomCode: string,
+  participantId: string,
+  restaurantId: string,
+  decision: "like" | "pass" | "super_like" | "veto",
+) {
   return request<SwipeResult>(`/api/sessions/${encodeURIComponent(roomCode)}/swipes`, {
     method: "POST",
     body: JSON.stringify({

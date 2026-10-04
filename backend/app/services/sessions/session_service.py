@@ -25,7 +25,9 @@ from app.schemas.session import (
 from app.schemas.swipe import CreateSwipeRequest, RestaurantResult, ResultsResponse, SwipeResponse
 from app.services.ai.base import AIService
 from app.services.ai.mock import MockAIService
+from app.services.matching.constraints import MatchConstraints
 from app.services.matching.matching_service import MatchRestaurant, MatchSwipe, MatchingService
+from app.services.matching.preferences import PreferenceType, quota_key
 from app.services.restaurants.base import RestaurantProvider
 from app.services.restaurants.restaurant_search_service import RestaurantSearchService
 from app.services.sessions.room_code import generate_room_code
@@ -73,7 +75,12 @@ class SessionService:
 
         candidates = RestaurantSearchService(self.restaurants).build_deck(intent)
 
-        dinner = Session(room_code=self._unique_room_code(), description=description, status="lobby")
+        dinner = Session(
+            room_code=self._unique_room_code(),
+            description=description,
+            status="lobby",
+            intent_json=intent.model_dump_json(),
+        )
         self.db.add(dinner)
         self.db.flush()
 
@@ -203,21 +210,25 @@ class SessionService:
         )
         if existing is not None:
             raise ConflictError("You already decided on this restaurant")
+        self._require_special_available(dinner, participant.id, payload.decision)
 
         swipe = Swipe(
             session_id=dinner.id,
             participant_id=participant.id,
             restaurant_id=payload.restaurant_id,
             decision=payload.decision,
+            quota_key=quota_key(payload.decision, payload.restaurant_id),
         )
         self.db.add(swipe)
         try:
             self.db.flush()
         except IntegrityError:
             self.db.rollback()
-            raise ConflictError("You already decided on this restaurant") from None
+            raise ConflictError(_conflict_message(payload.decision)) from None
 
         progress = self._progress(dinner)
+        super_likes_used = self._decision_count(dinner, PreferenceType.SUPER_LIKE)
+        vetoes_used = self._decision_count(dinner, PreferenceType.VETO)
         all_completed = progress.total > 0 and progress.finished >= progress.total
         results: ResultsResponse | None = None
         if all_completed:
@@ -233,6 +244,10 @@ class SessionService:
                 decision=payload.decision,
                 progress=progress,
                 all_completed=all_completed,
+                super_like_remaining=not self._participant_used(dinner, participant.id, PreferenceType.SUPER_LIKE),
+                veto_remaining=not self._participant_used(dinner, participant.id, PreferenceType.VETO),
+                super_likes_used=super_likes_used,
+                vetoes_used=vetoes_used,
             ),
             results=results,
         )
@@ -326,6 +341,7 @@ class SessionService:
                     address=link.restaurant.address,
                     image_url=link.restaurant.image_url,
                     description=link.restaurant.description,
+                    categories=tuple(_load_categories(link.restaurant.categories)),
                 )
                 for link in links
             ],
@@ -338,6 +354,16 @@ class SessionService:
                 for swipe in swipes
             ],
             len(participants),
+            _match_constraints(dinner),
+        )
+        eligible = sum(1 for item in ranked if not item.eliminated)
+        logger.info(
+            "Session matching complete. participants=%s evaluated=%s eligible=%s vetoed=%s winner=%s",
+            len(participants),
+            len(ranked),
+            eligible,
+            sum(1 for item in ranked if item.vetoes),
+            ranked[0].restaurant_id if ranked else None,
         )
         results = [_to_result(item) for item in ranked]
         return ResultsResponse(
@@ -407,6 +433,32 @@ class SessionService:
             or 0
         )
 
+    def _require_special_available(self, dinner: Session, participant_id: str, decision: str) -> None:
+        if decision not in {PreferenceType.SUPER_LIKE.value, PreferenceType.VETO.value}:
+            return
+        if self._participant_used(dinner, participant_id, decision):
+            raise ConflictError(_conflict_message(decision))
+
+    def _participant_used(self, dinner: Session, participant_id: str, decision: str) -> bool:
+        return (
+            self.db.query(Swipe.id)
+            .filter(
+                Swipe.session_id == dinner.id,
+                Swipe.participant_id == participant_id,
+                Swipe.decision == decision,
+            )
+            .first()
+            is not None
+        )
+
+    def _decision_count(self, dinner: Session, decision: str) -> int:
+        return (
+            self.db.query(func.count(Swipe.id))
+            .filter(Swipe.session_id == dinner.id, Swipe.decision == decision)
+            .scalar()
+            or 0
+        )
+
     def _require_session(self, room_code: str) -> Session:
         code = normalize_room_code(room_code)
         dinner = self.db.query(Session).filter(Session.room_code == code).one_or_none()
@@ -443,6 +495,29 @@ class SessionService:
             if exists is None:
                 return code
         raise ConflictError("Could not generate a room code. Try again.")
+
+
+def _conflict_message(decision: str) -> str:
+    if decision == PreferenceType.SUPER_LIKE.value:
+        return "You already used your Super Like"
+    if decision == PreferenceType.VETO.value:
+        return "You already used your Veto"
+    return "You already decided on this restaurant"
+
+
+def _match_constraints(dinner: Session) -> MatchConstraints:
+    if not dinner.intent_json:
+        return MatchConstraints()
+    try:
+        intent = DinnerIntent.model_validate_json(dinner.intent_json)
+    except ValueError:
+        logger.warning("Stored dinner intent could not be read")
+        return MatchConstraints()
+    return MatchConstraints(
+        price_level=intent.price_level,
+        dietary_preferences=tuple(intent.dietary_preferences),
+        radius_meters=intent.radius,
+    )
 
 
 def _load_categories(raw: str | None) -> list[str]:
@@ -482,8 +557,16 @@ def _to_result(item) -> RestaurantResult:
         address=item.address,
         image_url=item.image_url,
         likes=item.likes,
+        super_likes=item.super_likes,
+        passes=item.passes,
+        vetoes=item.vetoes,
         total_participants=item.total_participants,
         compatibility=item.compatibility,
         compatibility_percent=item.compatibility_percent,
+        minimum_satisfaction=item.minimum_satisfaction,
+        group_satisfaction=item.group_satisfaction,
+        fairness_score=item.fairness_score,
+        eliminated=item.eliminated,
+        reasons=item.reasons,
         explanation=item.explanation,
     )

@@ -118,6 +118,8 @@ async def create_swipe(
                 "type": "swipe_progress",
                 "finished": outcome.swipe.progress.finished,
                 "total": outcome.swipe.progress.total,
+                "super_likes_used": outcome.swipe.super_likes_used,
+                "vetoes_used": outcome.swipe.vetoes_used,
             },
         )
     return outcome.swipe

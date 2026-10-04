@@ -48,7 +48,7 @@ export type Restaurant = {
   image_url: string | null;
   source: string;
   position: number;
-  my_decision: "like" | "pass" | null;
+  my_decision: "like" | "pass" | "super_like" | "veto" | null;
 };
 
 export type RestaurantResult = {
@@ -61,7 +61,11 @@ export type RestaurantResult = {
   address: string | null;
   image_url: string | null;
   likes: number;
+  super_likes?: number;
+  passes?: number;
+  vetoes?: number;
   total_participants: number;
+  eliminated?: boolean;
   compatibility: number;
   compatibility_percent: number;
   explanation: string;
@@ -78,9 +82,11 @@ export type Results = {
 export type SwipeResult = {
   id: string;
   restaurant_id: string;
-  decision: "like" | "pass";
+  decision: "like" | "pass" | "super_like" | "veto";
   progress: Progress;
   all_completed: boolean;
+  super_like_remaining?: boolean;
+  veto_remaining?: boolean;
 };
 
 export type LiveEvent = {
