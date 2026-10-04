@@ -69,7 +69,7 @@ export default function CreatePage() {
             rows={5}
             value={description}
             onChange={(event) => setDescription(event.target.value)}
-            placeholder="Let CocoNomNom know the restaurants you are looking for!"
+            placeholder="Let Croco Nomnom know the restaurants you are looking for!"
             className="form-field mt-2"
           />
           {spoken ? <p className="mt-2 text-sm text-ink-soft">You said this. Edit it if anything is off.</p> : null}
