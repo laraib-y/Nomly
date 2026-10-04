@@ -119,7 +119,7 @@ export function Lobby({ roomCode }: { roomCode: string }) {
               type="button"
               onClick={() => void onStart()}
               disabled={pending || !session}
-              className="mt-6 w-full rounded-full bg-chili px-5 py-3 text-white disabled:opacity-60"
+              className="button-orange mt-6 w-full rounded-full px-5 py-3 disabled:opacity-60"
             >
               {pending ? "Starting..." : "Start dinner"}
             </button>
