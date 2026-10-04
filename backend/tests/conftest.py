@@ -15,6 +15,7 @@ from app.models import Base
 def isolated_settings(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, None]:
     monkeypatch.setenv("GEMINI_API_KEY", "")
     monkeypatch.setenv("GEOAPIFY_API_KEY", "")
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "")
     monkeypatch.setenv("DATABASE_URL", "sqlite://")
     get_settings.cache_clear()
     yield

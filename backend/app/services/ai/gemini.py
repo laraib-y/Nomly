@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+import time
 
 import httpx
 from pydantic import ValidationError
@@ -10,7 +11,7 @@ from app.services.ai.base import AIService
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_MODEL = "gemini-3.8-flash"
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
 _PROMPT = """Extract a dinner search intent from the user's request.
@@ -29,7 +30,7 @@ Rules:
 - Do not invent a city, neighbourhood, radius, price, vibe, group size, or diet.
 - Do not guess a location from general knowledge.
 - Do not name, rank, or recommend restaurants. Do not add restaurant fields.
-- radius is meters, and only when the user states a distance. 5 km is 5000. "Close by" is null.
+- radius is meters, and only when the user states a distance. 5 km is 5000. 3 km is 3000. "Close by" is null. Never return the kilometer count itself.
 - price_level 1 is cheap, budget, student budget, or affordable.
 - price_level 2 is "not too expensive".
 - price_level 3 is mid-range or moderate.
@@ -68,8 +69,8 @@ class GeminiAIService(AIService):
             "systemInstruction": {"parts": [{"text": _PROMPT}]},
             "contents": [{"parts": [{"text": description.strip()}]}],
             "generationConfig": {
-                "temperature": 0,
                 "responseMimeType": "application/json",
+                "thinkingConfig": {"thinkingLevel": "LOW"},
                 "responseSchema": {
                     "type": "OBJECT",
                     "properties": {
@@ -95,17 +96,9 @@ class GeminiAIService(AIService):
         }
         url = GEMINI_URL.format(model=self.model)
         owns_client = self._client is None
-        client = self._client or httpx.Client(timeout=12.0)
+        client = self._client or httpx.Client(timeout=30.0)
         try:
-            response = client.post(url, headers={"x-goog-api-key": self.api_key}, json=payload)
-            response.raise_for_status()
-            body = response.json()
-        except httpx.HTTPStatusError as exc:
-            logger.warning("Gemini request failed with status %s", exc.response.status_code)
-            raise AIParseError("Gemini request failed") from None
-        except httpx.HTTPError:
-            logger.warning("Gemini request failed")
-            raise AIParseError("Gemini request failed") from None
+            body = self._post_intent(client, url, payload)
         finally:
             if owns_client:
                 client.close()
@@ -121,16 +114,52 @@ class GeminiAIService(AIService):
         except ValidationError as exc:
             raise AIParseError("Gemini JSON did not match DinnerIntent") from exc
 
+    def _post_intent(self, client: httpx.Client, url: str, payload: dict) -> dict:
+        for attempt in range(2):
+            try:
+                response = client.post(url, headers={"x-goog-api-key": self.api_key}, json=payload)
+                response.raise_for_status()
+                return response.json()
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code == 503 and attempt == 0:
+                    logger.warning("Gemini request failed status=503 model=%s; retrying once", self.model)
+                    time.sleep(1)
+                    continue
+                logger.warning(
+                    "Gemini request failed status=%s model=%s response=%s",
+                    exc.response.status_code,
+                    self.model,
+                    _safe_response_body(exc.response.text, self.api_key),
+                )
+                raise AIParseError("Gemini request failed") from None
+            except httpx.HTTPError as exc:
+                logger.warning("Gemini request failed model=%s error_type=%s", self.model, type(exc).__name__)
+                raise AIParseError("Gemini request failed") from None
+        raise AIParseError("Gemini request failed")
+
 
 def _extract_text(body: dict) -> str:
     try:
         parts = body["candidates"][0]["content"]["parts"]
-        text = parts[0]["text"]
     except (KeyError, IndexError, TypeError) as exc:
         raise AIParseError("Gemini response did not include text") from exc
-    if not isinstance(text, str) or not text.strip():
+    texts: list[str] = []
+    for part in parts:
+        if not isinstance(part, dict) or part.get("thought") is True:
+            continue
+        text = part.get("text")
+        if isinstance(text, str) and text.strip():
+            texts.append(text)
+    if not texts:
         raise AIParseError("Gemini response text was empty")
-    return text
+    return texts[-1]
+
+
+def _safe_response_body(text: str, api_key: str) -> str:
+    clipped = " ".join(text.split())[:500]
+    if api_key:
+        clipped = clipped.replace(api_key, "***")
+    return clipped
 
 
 def _strip_fences(text: str) -> str:

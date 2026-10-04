@@ -14,7 +14,21 @@ class CreateSwipeRequest(BaseModel):
     decision: PreferenceValue
 
 
+class FairnessRead(BaseModel):
+    least_satisfied_percent: int
+    average_satisfaction_percent: int
+
+
 class RestaurantResult(BaseModel):
+    """Aggregate result for one restaurant. Never carries a participant's own vote.
+
+    satisfaction_percent is Group satisfaction: the share of participants who
+    chose Like or Super Like, (likes + super_likes) / participants. It is not
+    the weighted fairness score. compatibility_percent is the same number, kept
+    for older clients. fairness holds the weighted 0-2 values the ranking uses,
+    as percentages of the maximum. Passes include anyone who did not choose.
+    """
+
     restaurant_id: str
     name: str
     description: str | None
@@ -36,6 +50,12 @@ class RestaurantResult(BaseModel):
     eliminated: bool = False
     reasons: list[str] = Field(default_factory=list)
     explanation: str
+    positives: int = 0
+    satisfaction_percent: int = 0
+    elimination_reason: Literal["veto", "budget", "distance", "diet"] | None = None
+    fairness: FairnessRead | None = None
+    rank: int = 0
+    highlight: Literal["best_balance", "strongest_support", "higher_satisfaction"] | None = None
 
 
 class ResultsResponse(BaseModel):

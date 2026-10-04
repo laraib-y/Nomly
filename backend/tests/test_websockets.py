@@ -203,5 +203,7 @@ def test_swipe_progress_completion_and_results(client):
         assert completed["total"] == 2
         ready = _wait_for(websocket, "results_ready", limit=5)
         assert ready["top_match"]["compatibility_percent"] == 100
+        assert ready["top_match"]["satisfaction_percent"] == 100
+        assert ready["top_match"]["positives"] == 2
         assert ready["top_match"]["likes"] == 2
         assert "Sarah liked" not in str(ready)

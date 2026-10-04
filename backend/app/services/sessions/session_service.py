@@ -22,7 +22,7 @@ from app.schemas.session import (
     SessionRead,
     StartSessionRequest,
 )
-from app.schemas.swipe import CreateSwipeRequest, RestaurantResult, ResultsResponse, SwipeResponse
+from app.schemas.swipe import CreateSwipeRequest, FairnessRead, RestaurantResult, ResultsResponse, SwipeResponse
 from app.services.ai.base import AIService
 from app.services.ai.mock import MockAIService
 from app.services.matching.constraints import MatchConstraints
@@ -577,4 +577,13 @@ def _to_result(item) -> RestaurantResult:
         eliminated=item.eliminated,
         reasons=item.reasons,
         explanation=item.explanation,
+        positives=item.positives,
+        satisfaction_percent=item.satisfaction_percent,
+        elimination_reason=item.elimination_reason,
+        fairness=FairnessRead(
+            least_satisfied_percent=item.least_satisfied_percent,
+            average_satisfaction_percent=item.average_satisfaction_percent,
+        ),
+        rank=item.rank,
+        highlight=item.highlight,
     )

@@ -106,6 +106,8 @@ async def create_swipe(
                 else {
                     "name": top.name,
                     "compatibility_percent": top.compatibility_percent,
+                    "satisfaction_percent": top.satisfaction_percent,
+                    "positives": top.positives,
                     "likes": top.likes,
                     "total_participants": top.total_participants,
                 },

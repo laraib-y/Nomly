@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     gemini_api_key: str = ""
     geoapify_api_key: str = ""
     embedding_model: str = "gemini-embedding-001"
+    elevenlabs_api_key: str = ""
+    elevenlabs_stt_model: str = "scribe_v2"
+    elevenlabs_tts_model: str = "eleven_flash_v2_5"
+    elevenlabs_tts_voice_id: str = "EXAVITQu4vr4xnSDxMaL"
     frontend_url: str = ""
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
 
