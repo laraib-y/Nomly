@@ -177,6 +177,25 @@ Any missing field shows "Not available for now". Price is shown only for a provi
 
 Images follow this order: a provider photo, then a cuisine photo from `frontend/public/food`, then a generic food photo. The cuisine comes from the pipeline's `cuisine` and `categories`, not from the restaurant name. When a cuisine has more than one photo, the restaurant id picks one, so a place keeps the same picture on the deck and on results. Cuisine and generic photos are labelled "Representative photo". The code is in `frontend/lib/foodImages.ts` and `frontend/lib/format.ts`.
 
+### Phase 8: Accounts and dinner history
+
+Accounts are optional. Guests still create, join, and swipe with only a nickname, exactly as before.
+
+- `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`. Responses carry `id`, `email`, `display_name`, and `created_at`. Password hashes never leave the server.
+- Passwords are hashed with Argon2id (`argon2-cffi`). Login answers "Email or password is incorrect" for both a wrong password and an unknown email, and verifies against a dummy hash so the two take the same time.
+- A successful login or registration stores a random 256-bit token in an `HttpOnly`, `SameSite=Lax` cookie named `nomly_session` that lasts 30 days. The database keeps only the token's SHA-256 in `auth_sessions`, with an expiry. Logout deletes that row, so an old cookie stops working at once. The frontend never sees the token and keeps nothing about the session in `localStorage` or `sessionStorage`.
+- CSRF: the cookie is `SameSite=Lax`, and a middleware rejects any `POST`, `PUT`, `PATCH`, or `DELETE` that carries the cookie (or targets `/api/auth/*`) when its `Origin` is not an allowed frontend origin.
+- Login is limited to 10 attempts per 5 minutes per IP and email. Registration is limited to 5 per 10 minutes per IP. The limiter is in-process, so it resets on restart and is per instance.
+- A dinner created while signed in stores `sessions.user_id`. Guest dinners keep `NULL`. Joining someone else's room never changes the owner.
+- `GET /api/history` and `GET /api/history/{session_id}` require a signed-in user and only read finished dinners where `sessions.user_id` is that user. Someone else's dinner, a guest dinner, an unfinished dinner, and an unknown id all return the same `404 Dinner not found`.
+- History numbers come from the same results builder as the live results screen, so the satisfaction shown in history always matches what the group saw. Items carry aggregate counts only: no nicknames, participant ids, or individual votes.
+- Stats: dinners, strong matches (at least two-thirds of the table chose Like or Super Like for the winner), average winner satisfaction, and average number of people who took part. Cuisine counts use the winner's cuisine and skip "Restaurant" or missing values.
+- The `/history` timeline is plain SVG plus positioned buttons, with no chart library. Each dinner is placed by date and group satisfaction, and dinners without a satisfaction number are left out rather than drawn at 0%.
+
+Cross-site deployments, where the site and the API are on different registrable domains, need `AUTH_COOKIE_SAMESITE=none`. That forces `Secure` on, so the API must be served over HTTPS. Same-site deployments keep the default `lax`. Set `AUTH_COOKIE_SECURE=true` whenever the API is on HTTPS.
+
+Migration `0006_user_accounts` adds `users`, `auth_sessions`, and the nullable `sessions.user_id`. Existing dinners and restaurant rows are untouched. Tests: `backend/tests/test_auth_history.py`, `backend/tests/test_migration_0006.py`, `frontend/tests/account.test.ts`, and `frontend/tests/history.test.ts`.
+
 ## Realtime
 
 `/ws/sessions/{room_code}` sends:
@@ -199,9 +218,12 @@ Progress messages contain counts only. They do not say who liked which restauran
 - `session_restaurants` attaches one ordered deck to a session. This join table is what keeps swipe order identical for the group.
 - `swipes` stores `pass`, `like`, `super_like`, or `veto`. One row per participant and restaurant. A second unique key allows only one super like and one veto per participant in the room.
 - `sessions.intent_json` keeps the parsed dinner intent so budget, diet, and radius can be enforced again at match time.
+- `sessions.user_id` is the account that created the dinner, or `NULL` for guests. It is set to `NULL` if the account is deleted.
+- `users` holds email (unique, lowercased), Argon2id `password_hash`, and `display_name`.
+- `auth_sessions` holds one row per signed-in browser: the SHA-256 of the cookie token and its expiry.
 
 `host_participant_id` is stored on the session and checked in the service. It is not a database foreign key, because the session and its host row are created together.
 
 ## Intentionally not built
 
-Accounts, payments, notifications, taste memory, travel-time routing, and ElevenLabs are extension points only. They are not part of this MVP. Semantic ranking is limited to soft preferences over restaurants that already passed the structured filters.
+Payments, notifications, profile editing, password reset, taste memory, and travel-time routing are extension points only. They are not part of this MVP. Semantic ranking is limited to soft preferences over restaurants that already passed the structured filters.

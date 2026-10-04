@@ -1,4 +1,4 @@
-import type { DinnerSession, Restaurant, Results, SwipeResult } from "@/types";
+import type { AuthUser, DinnerSession, HistoryDetail, HistoryList, Restaurant, Results, SwipeResult } from "@/types";
 
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/$/, "");
 
@@ -21,6 +21,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
         ...(init?.headers || {}),
       },
       cache: "no-store",
+      // The account lives in an HttpOnly cookie the API sets; JavaScript never sees the token.
+      credentials: "include",
     });
   } catch {
     throw new ApiError(0, "Can't reach the Nomly API. Start the backend on port 8000.");
@@ -40,7 +42,38 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError(response.status, detail || "Request failed");
   }
 
+  if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
+}
+
+export function register(input: { email: string; password: string; display_name: string }) {
+  return request<AuthUser>("/api/auth/register", { method: "POST", body: JSON.stringify(input) });
+}
+
+export function login(input: { email: string; password: string }) {
+  return request<AuthUser>("/api/auth/login", { method: "POST", body: JSON.stringify(input) });
+}
+
+export function logout() {
+  return request<void>("/api/auth/logout", { method: "POST" });
+}
+
+/** The signed-in user, or null for guests. Other failures still throw. */
+export async function getMe(): Promise<AuthUser | null> {
+  try {
+    return await request<AuthUser>("/api/auth/me");
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 401) return null;
+    throw err;
+  }
+}
+
+export function getHistory() {
+  return request<HistoryList>("/api/history");
+}
+
+export function getHistoryDinner(sessionId: string) {
+  return request<HistoryDetail>(`/api/history/${encodeURIComponent(sessionId)}`);
 }
 
 export async function transcribeAudio(audio: Blob): Promise<string> {

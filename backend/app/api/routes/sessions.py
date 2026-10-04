@@ -2,7 +2,8 @@ import logging
 
 from fastapi import APIRouter, Depends, Query
 
-from app.api.deps import get_session_service
+from app.api.deps import get_optional_user, get_session_service
+from app.models import User
 from app.schemas.restaurant import RestaurantRead
 from app.schemas.session import (
     CreateSessionRequest,
@@ -25,8 +26,9 @@ router = APIRouter()
 async def create_session(
     payload: CreateSessionRequest,
     service: SessionService = Depends(get_session_service),
+    user: User | None = Depends(get_optional_user),
 ) -> CreateSessionResponse:
-    return service.create_session(payload)
+    return service.create_session(payload, user_id=user.id if user else None)
 
 
 @router.post("/{room_code}/join", response_model=JoinSessionResponse, status_code=201)
