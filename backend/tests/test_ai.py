@@ -58,6 +58,7 @@ def test_gemini_parses_valid_json():
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.headers["x-goog-api-key"] == "test-key"
         assert "test-key" not in str(request.url)
+        assert "gemini-3.8-flash:generateContent" in str(request.url)
         payload = {
             "cuisines": ["Japanese", "Korean"],
             "price_level": 2,
@@ -75,6 +76,55 @@ def test_gemini_parses_valid_json():
     assert intent.cuisines == ["Japanese", "Korean"]
     assert intent.price_level == 2
     assert intent.location == "Burnaby"
+
+
+def test_gemini_retries_one_temporary_unavailable_response(monkeypatch):
+    calls = {"count": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert "test-key" not in str(request.url)
+        calls["count"] += 1
+        if calls["count"] == 1:
+            return httpx.Response(503, json={"error": {"message": "high demand"}})
+        payload = {
+            "group_size": 5,
+            "location": "Burnaby",
+            "radius": 3000,
+            "cuisines": ["Japanese", "Korean"],
+            "price_level": 1,
+            "vibe": "casual and cozy",
+            "dietary_preferences": [],
+        }
+        return httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": json.dumps(payload)}]}}]})
+
+    monkeypatch.setattr("app.services.ai.gemini.time.sleep", lambda _seconds: None)
+    service = GeminiAIService("test-key", client=httpx.Client(transport=httpx.MockTransport(handler)))
+    intent = service.parse_dinner_request(
+        "We are five people looking for cheap Japanese or Korean food in Burnaby.",
+        "Burnaby",
+    )
+    assert calls["count"] == 2
+    assert intent.location == "Burnaby"
+    assert intent.cuisines == ["Japanese", "Korean"]
+    assert intent.price_level == 1
+    assert intent.radius == 3000
+    assert intent.vibe == "casual and cozy"
+
+
+def test_gemini_404_raises_parse_error_without_logging_the_key(caplog):
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.headers["x-goog-api-key"] == "test-key"
+        assert "test-key" not in str(request.url)
+        return httpx.Response(404, json={"error": {"message": "model is no longer available"}})
+
+    service = GeminiAIService("test-key", client=httpx.Client(transport=httpx.MockTransport(handler)))
+    with caplog.at_level("WARNING"):
+        with pytest.raises(AIParseError):
+            service.parse_dinner_request("dinner", None)
+    assert "status=404" in caplog.text
+    assert "model=gemini-3.8-flash" in caplog.text
+    assert "test-key" not in caplog.text
+    assert "no longer available" in caplog.text
 
 
 def test_gemini_rejects_invalid_json():
@@ -284,6 +334,7 @@ def test_explicit_fields_override_gemini(client):
     "transport_response",
     [
         httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": "not-json"}]}}]}),
+        httpx.Response(404, json={"error": {"message": "model is no longer available"}}),
         httpx.Response(429, json={"error": {"message": "rate limit"}}),
         httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": json.dumps({"price_level": 99})}]}}]}),
     ],

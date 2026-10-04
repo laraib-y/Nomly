@@ -4,7 +4,9 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { joinSession, startSession } from "@/lib/api";
+import { preloadSounds } from "@/lib/audio";
 import { loadIdentity, saveIdentity } from "@/lib/storage";
+import { useRoomSounds } from "@/lib/useRoomSounds";
 import { useSession } from "@/lib/useSession";
 import type { Identity } from "@/types";
 
@@ -16,11 +18,13 @@ export function Lobby({ roomCode }: { roomCode: string }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [copied, setCopied] = useState(false);
-  const { session } = useSession(roomCode, identity?.participantId);
+  const onRoomEvent = useRoomSounds(roomCode);
+  const { session } = useSession(roomCode, identity?.participantId, onRoomEvent);
 
   useEffect(() => {
     setIdentity(loadIdentity(roomCode));
     setReady(true);
+    preloadSounds(["join"]);
   }, [roomCode]);
 
   useEffect(() => {

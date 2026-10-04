@@ -47,3 +47,10 @@ class RankedRestaurant:
     eliminated: bool = False
     reasons: list[str] = field(default_factory=list)
     relevance: float | None = None
+    positives: int = 0
+    satisfaction_percent: int = 0
+    least_satisfied_percent: int = 0
+    average_satisfaction_percent: int = 0
+    elimination_reason: str | None = None
+    rank: int = 0
+    highlight: str | None = None

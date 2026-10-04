@@ -6,7 +6,9 @@ import { useRouter } from "next/navigation";
 
 import { DecisionButtons, RestaurantCard } from "@/components/RestaurantCard";
 import { getRestaurants, sendSwipe } from "@/lib/api";
+import { playSound, playSoundOnce, preloadSounds, soundForDecision } from "@/lib/audio";
 import { loadIdentity } from "@/lib/storage";
+import { useRoomSounds } from "@/lib/useRoomSounds";
 import { useSession } from "@/lib/useSession";
 import type { Identity, Progress, Restaurant } from "@/types";
 
@@ -22,7 +24,12 @@ export function SwipeRoom({ roomCode }: { roomCode: string }) {
   const [localProgress, setLocalProgress] = useState<Progress | null>(null);
   const [confirming, setConfirming] = useState<"super_like" | "veto" | null>(null);
   const direction = useRef<Decision>("like");
-  const { session, progress, eventName } = useSession(roomCode, identity?.participantId);
+  const onRoomEvent = useRoomSounds(roomCode);
+  const { session, progress, eventName } = useSession(roomCode, identity?.participantId, onRoomEvent);
+
+  useEffect(() => {
+    preloadSounds(["like", "pass", "superlike", "veto", "participant-finished", "matching", "winner"]);
+  }, []);
 
   useEffect(() => {
     const stored = loadIdentity(roomCode);
@@ -72,6 +79,7 @@ export function SwipeRoom({ roomCode }: { roomCode: string }) {
 
   async function choose(decision: Decision) {
     if (!identity || !current || pending || done) return;
+    playSound(soundForDecision(decision));
     direction.current = decision;
     setPending(true);
     setError(null);
@@ -85,6 +93,7 @@ export function SwipeRoom({ roomCode }: { roomCode: string }) {
       );
       setLocalProgress(result.progress);
       if (result.all_completed) {
+        playSoundOnce(`matching:${roomCode.toUpperCase()}`, "matching");
         router.push(`/dinner/${roomCode}/results`);
         return;
       }

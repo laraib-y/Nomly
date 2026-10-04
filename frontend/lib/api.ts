@@ -43,6 +43,48 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+export async function transcribeAudio(audio: Blob): Promise<string> {
+  const body = new FormData();
+  const type = audio.type || "audio/webm";
+  body.append("audio", audio, type.includes("wav") ? "dinner.wav" : "dinner.webm");
+  const payload = await voiceRequest<{ transcript: string }>("/api/voice/transcribe", { method: "POST", body });
+  return payload.transcript;
+}
+
+export async function speakConcierge(text: string): Promise<Blob | null> {
+  try {
+    const response = await fetch(`${API_URL}/api/voice/speak`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: text.slice(0, 400) }),
+    });
+    if (!response.ok) return null;
+    return await response.blob();
+  } catch {
+    return null;
+  }
+}
+
+async function voiceRequest<T>(path: string, init: RequestInit): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, { ...init, cache: "no-store" });
+  } catch {
+    throw new ApiError(0, "Can't reach the Nomly API. Start the backend on port 8000.");
+  }
+  if (!response.ok) {
+    let detail = "Voice is temporarily unavailable. You can type your dinner plans instead.";
+    try {
+      const body = await response.json();
+      if (typeof body.detail === "string") detail = body.detail;
+    } catch {
+      detail = "We couldn't understand that recording. Try again or type your dinner plans instead.";
+    }
+    throw new ApiError(response.status, detail);
+  }
+  return response.json() as Promise<T>;
+}
+
 export function createSession(input: {
   description: string;
   nickname: string;

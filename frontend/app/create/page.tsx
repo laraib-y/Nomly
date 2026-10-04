@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { VoiceInput } from "@/components/VoiceInput";
 import { createSession } from "@/lib/api";
 import { saveIdentity } from "@/lib/storage";
 
@@ -16,6 +17,7 @@ export default function CreatePage() {
   const [groupSize, setGroupSize] = useState(5);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [spoken, setSpoken] = useState(false);
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -65,7 +67,15 @@ export default function CreatePage() {
             onChange={(event) => setDescription(event.target.value)}
             className="form-field mt-2"
           />
+          {spoken ? <p className="mt-2 text-sm text-ink-soft">You said this. Edit it if anything is off.</p> : null}
         </label>
+        <VoiceInput
+          onTranscript={(transcript) => {
+            setDescription(transcript);
+            setSpoken(true);
+            setError(null);
+          }}
+        />
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block text-lg">
             <span>Group size</span>
@@ -94,7 +104,7 @@ export default function CreatePage() {
           disabled={pending}
           className="button-primary w-full rounded-2xl py-3 text-lg disabled:opacity-60"
         >
-          {pending ? "Finding restaurants..." : "Create dinner"}
+          {pending ? "Finding restaurants..." : spoken ? "Find dinner" : "Create dinner"}
         </button>
         <p className="text-sm text-ink-soft">
           Anyone with the room code can join. You can start when the group is here.

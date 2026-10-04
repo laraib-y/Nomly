@@ -1,20 +1,47 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { cuisineWash, formatPrice, formatRating } from "@/lib/format";
-import { getResults } from "@/lib/api";
+import { getResults, speakConcierge } from "@/lib/api";
+import { afterSound, isSoundEnabled, playSoundOnce, playSpeech } from "@/lib/audio";
+import { SATISFACTION_HINT, SATISFACTION_LABEL, describeResult, whyThisWon } from "@/lib/results";
 import { useSession } from "@/lib/useSession";
 import type { Results } from "@/types";
+
+const SPEECH_LIMIT = 400;
 
 export function ResultsRoom({ roomCode }: { roomCode: string }) {
   const router = useRouter();
   const [results, setResults] = useState<Results | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [showWhy, setShowWhy] = useState(false);
+  const [whyAudio, setWhyAudio] = useState<"idle" | "loading" | "unavailable">("idle");
+  const whyClip = useRef<{ text: string; clip: Blob } | null>(null);
   const { session, progress, eventName } = useSession(roomCode);
+  const winnerId = results?.top_match?.restaurant_id;
+  const winnerName = results?.top_match?.name;
+
+  useEffect(() => {
+    if (!winnerId || !winnerName) return;
+    let cancelled = false;
+    let cancelStep = afterSound("matching", () => {
+      if (!playSoundOnce(`winner:${roomCode.toUpperCase()}`, "winner")) return;
+      const announcement = isSoundEnabled()
+        ? speakConcierge(`We have a winner. Your group is going to ${winnerName}.`)
+        : Promise.resolve(null);
+      cancelStep = afterSound("winner", () => {
+        void announcement.then((clip) => {
+          if (clip && !cancelled) void playSpeech(clip);
+        });
+      });
+    });
+    return () => {
+      cancelled = true;
+      cancelStep();
+    };
+  }, [roomCode, winnerId, winnerName]);
 
   useEffect(() => {
     let cancelled = false;
@@ -57,7 +84,23 @@ export function ResultsRoom({ roomCode }: { roomCode: string }) {
     );
   }
 
-  const others = results?.alternatives.slice(0, 4) || [];
+  const alternatives = results?.alternatives || [];
+  const others = alternatives.filter((item, index) => index < 4 || item.highlight === "higher_satisfaction");
+  const view = describeResult(top);
+  const why = whyThisWon(top);
+
+  async function hearWhy() {
+    if (!top || whyAudio === "loading") return;
+    setWhyAudio("loading");
+    const text = speakable(`Why ${top.name}? ${why}`);
+    let clip = whyClip.current?.text === text ? whyClip.current.clip : null;
+    if (!clip) {
+      clip = await speakConcierge(text);
+      if (clip) whyClip.current = { text, clip };
+    }
+    const played = clip ? await playSpeech(clip, { force: true }) : false;
+    setWhyAudio(played ? "idle" : "unavailable");
+  }
 
   return (
     <section className="mx-auto max-w-2xl pt-4">
@@ -69,13 +112,27 @@ export function ResultsRoom({ roomCode }: { roomCode: string }) {
             <h1 className="mt-3 font-serif text-5xl leading-none sm:text-6xl">{top.name}</h1>
           </div>
           <div className="space-y-4 px-6 py-8 sm:px-10">
-            <p className="font-serif text-5xl text-moss">{top.compatibility_percent}%</p>
-            <p className="text-lg">Group match</p>
-            <p className="text-ink-soft">
-              {top.likes} of {top.total_participants} people liked this restaurant.
-              {top.super_likes ? ` ${top.super_likes} gave it a Super Like.` : ""}
-            </p>
-            {top.eliminated ? <p className="text-sm text-chili">{top.explanation}</p> : null}
+            {view.badge ? (
+              <span className="inline-block rounded-full bg-paper px-3 py-1 text-xs uppercase tracking-[0.14em] text-moss">
+                {view.badge}
+              </span>
+            ) : null}
+            {view.percent !== null ? (
+              <div>
+                <p className="text-lg" title={SATISFACTION_HINT}>
+                  {SATISFACTION_LABEL}
+                </p>
+                <p className="font-serif text-5xl text-moss">{view.percent}%</p>
+                <SatisfactionBar percent={view.percent} />
+              </div>
+            ) : null}
+            {view.positiveLine ? (
+              <p className="text-ink-soft">
+                <span className="text-ink">{view.positiveLine}</span>
+                {view.breakdown ? ` · ${view.breakdown}` : ""}
+              </p>
+            ) : null}
+            {view.eligibility ? <p className="text-sm text-chili">{view.eligibility}</p> : null}
             {[formatPrice(top.price), formatRating(top.rating), top.address].filter(Boolean).length > 0 ? (
               <p className="text-sm text-ink-soft">
                 {[formatPrice(top.price), formatRating(top.rating), top.address].filter(Boolean).join(" · ")}
@@ -95,28 +152,75 @@ export function ResultsRoom({ roomCode }: { roomCode: string }) {
 
       {others.length > 0 ? (
         <div className="mt-8">
-          <h2 className="font-serif text-3xl">Other strong matches</h2>
+          <h2 className="font-serif text-3xl">Other options</h2>
+          <p className="mt-1 text-sm text-ink-soft">
+            Percentages are {SATISFACTION_LABEL.toLowerCase()}. Nomly ranks by fairness first, so the highest number
+            does not always win.
+          </p>
           <ul className="mt-4 space-y-3">
-            {others.map((restaurant) => (
-              <li key={restaurant.restaurant_id} className="rounded-2xl border border-line bg-card px-4 py-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="font-medium">{restaurant.name}</p>
-                    <p className="text-sm text-ink-soft">{restaurant.cuisine || "Restaurant"}</p>
+            {others.map((restaurant) => {
+              const item = describeResult(restaurant);
+              return (
+                <li
+                  key={restaurant.restaurant_id}
+                  className={`rounded-2xl border border-line bg-card px-4 py-4 ${item.eligibility ? "opacity-70" : ""}`}
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="font-medium">{restaurant.name}</p>
+                      <p className="text-sm text-ink-soft">{restaurant.cuisine || "Restaurant"}</p>
+                    </div>
+                    {item.percent !== null ? (
+                      <div className="text-right">
+                        <p className="font-serif text-2xl">{item.percent}%</p>
+                        <p className="text-xs text-ink-soft">satisfaction</p>
+                      </div>
+                    ) : null}
                   </div>
-                  <p className="font-serif text-2xl">{restaurant.compatibility_percent}%</p>
-                </div>
-                <div className="mt-3 h-2 rounded-full bg-paper-deep">
-                  <div
-                    className="h-2 rounded-full bg-moss"
-                    style={{ width: `${restaurant.compatibility_percent}%` }}
-                  />
-                </div>
-              </li>
-            ))}
+                  {item.percent !== null ? <SatisfactionBar percent={item.percent} muted={Boolean(item.eligibility)} /> : null}
+                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-soft">
+                    {item.positiveLine ? (
+                      <span>
+                        {item.positiveLine}
+                        {item.breakdown ? ` · ${item.breakdown}` : ""}
+                      </span>
+                    ) : null}
+                    {item.badge ? (
+                      <span className="rounded-full bg-paper px-2 py-0.5 text-xs uppercase tracking-[0.12em] text-gold">
+                        {item.badge}
+                      </span>
+                    ) : null}
+                    {item.eligibility ? <span className="text-chili">{item.eligibility}</span> : null}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </div>
       ) : null}
     </section>
   );
+}
+
+function SatisfactionBar({ percent, muted = false }: { percent: number; muted?: boolean }) {
+  return (
+    <div
+      className="mt-3 h-2 rounded-full bg-paper-deep"
+      role="progressbar"
+      aria-label={SATISFACTION_LABEL}
+      aria-valuenow={percent}
+      aria-valuemin={0}
+      aria-valuemax={100}
+    >
+      <div className={`h-2 rounded-full ${muted ? "bg-ink-soft" : "bg-moss"}`} style={{ width: `${percent}%` }} />
+    </div>
+  );
+}
+
+function speakable(text: string) {
+  const clean = text.replace(/\s+/g, " ").trim();
+  if (clean.length <= SPEECH_LIMIT) return clean;
+  const clipped = clean.slice(0, SPEECH_LIMIT);
+  const end = clipped.lastIndexOf(". ");
+  return end > 0 ? clipped.slice(0, end + 1) : clipped;
 }
