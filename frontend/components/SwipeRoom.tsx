@@ -10,6 +10,8 @@ import { loadIdentity } from "@/lib/storage";
 import { useSession } from "@/lib/useSession";
 import type { Identity, Progress, Restaurant } from "@/types";
 
+type Decision = "like" | "pass" | "super_like" | "veto";
+
 export function SwipeRoom({ roomCode }: { roomCode: string }) {
   const router = useRouter();
   const [identity, setIdentity] = useState<Identity | null>(null);
@@ -18,7 +20,8 @@ export function SwipeRoom({ roomCode }: { roomCode: string }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [localProgress, setLocalProgress] = useState<Progress | null>(null);
-  const direction = useRef<"like" | "pass">("like");
+  const [confirming, setConfirming] = useState<"super_like" | "veto" | null>(null);
+  const direction = useRef<Decision>("like");
   const { session, progress, eventName } = useSession(roomCode, identity?.participantId);
 
   useEffect(() => {
@@ -64,14 +67,22 @@ export function SwipeRoom({ roomCode }: { roomCode: string }) {
   const current = restaurants?.[cursor];
   const done = Boolean(restaurants && cursor >= restaurants.length);
   const shownProgress = localProgress || progress;
+  const superLikeLeft = !restaurants?.some((restaurant) => restaurant.my_decision === "super_like");
+  const vetoLeft = !restaurants?.some((restaurant) => restaurant.my_decision === "veto");
 
-  async function choose(decision: "like" | "pass") {
+  async function choose(decision: Decision) {
     if (!identity || !current || pending || done) return;
     direction.current = decision;
     setPending(true);
     setError(null);
     try {
       const result = await sendSwipe(roomCode, identity.participantId, current.id, decision);
+      setConfirming(null);
+      setRestaurants((deck) =>
+        deck?.map((restaurant) =>
+          restaurant.id === current.id ? { ...restaurant, my_decision: decision } : restaurant,
+        ) ?? null,
+      );
       setLocalProgress(result.progress);
       if (result.all_completed) {
         router.push(`/dinner/${roomCode}/results`);
@@ -134,7 +145,43 @@ export function SwipeRoom({ roomCode }: { roomCode: string }) {
         </AnimatePresence>
       )}
 
-      {!done ? <DecisionButtons disabled={pending} onPass={() => void choose("pass")} onLike={() => void choose("like")} /> : null}
+      {!done && confirming ? (
+        <div className="mt-5 rounded-3xl border border-line bg-card p-4 text-center">
+          <p className="font-medium">{confirming === "veto" ? "Veto this restaurant?" : "Super Like this restaurant?"}</p>
+          <p className="mt-2 text-sm text-ink-soft">
+            {confirming === "veto" ? "This uses your one Veto for this dinner." : "This uses your one Super Like."}
+          </p>
+          <div className="mt-4 flex justify-center gap-3">
+            <button type="button" onClick={() => setConfirming(null)} className="rounded-full border border-line px-4 py-2 text-sm">
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => void choose(confirming)}
+              className="rounded-full bg-ink px-4 py-2 text-sm text-paper disabled:opacity-50"
+            >
+              {confirming === "veto" ? "Veto" : "Super Like"}
+            </button>
+          </div>
+        </div>
+      ) : null}
+      {!done && !confirming ? (
+        <DecisionButtons
+          disabled={pending}
+          superLikeLeft={superLikeLeft}
+          vetoLeft={vetoLeft}
+          onPass={() => void choose("pass")}
+          onLike={() => void choose("like")}
+          onSuperLike={() => setConfirming("super_like")}
+          onVeto={() => setConfirming("veto")}
+        />
+      ) : null}
+      {!done ? (
+        <p className="mt-3 text-center text-xs text-ink-soft">
+          {superLikeLeft ? "1 Super Like left" : "Super Like used"} · {vetoLeft ? "1 Veto left" : "Veto used"}
+        </p>
+      ) : null}
       {error ? <p className="mt-4 text-center text-sm text-chili">{error}</p> : null}
       <p className="mt-4 text-center text-xs text-ink-soft">Arrow keys work too. Left to pass, right to like.</p>
     </section>

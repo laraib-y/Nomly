@@ -212,13 +212,11 @@ Diversity Selection
 
 The deck is usually 10 to 15 places. If only a few restaurants fit, the room gets those few. Budget and radius are hard limits when the provider actually has that data. Cuisine, rating, and vibe affect the order. The score is cuisine 40, price 25, location 15, rating 15, and category or vibe 5. Dietary labels are a ranking hint only, never a safety claim.
 
-`backend/app/services/matching/matching_service.py` ranks a restaurant with:
+`backend/app/services/matching/matching_service.py` ranks a finished room.
 
-```text
-compatibility = number of likes / total participants
-```
+A pass scores 0, a like scores 1, and a super like scores 2. Each person gets one super like and one veto. A veto removes that restaurant from the winning set even if other people super liked it. Places over the stated budget, past a known distance limit, or missing a stated diet are also ineligible. The least-satisfied person is considered before extra enthusiasm, so five ordinary likes beat two super likes and three passes.
 
-Example: 5 people and 4 likes is 80%. Ties break on like count, then rating, then name.
+Example: 5 people and 4 likes is still 80%. The result explains the counts without naming who chose what. Unused super likes and vetoes are allowed.
 
 Restaurants are fetched once when the room is created and reused for every swipe. See `docs/architecture.md` for the data model and socket events.
 

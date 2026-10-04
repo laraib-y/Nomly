@@ -73,7 +73,9 @@ export function ResultsRoom({ roomCode }: { roomCode: string }) {
             <p className="text-lg">Group match</p>
             <p className="text-ink-soft">
               {top.likes} of {top.total_participants} people liked this restaurant.
+              {top.super_likes ? ` ${top.super_likes} gave it a Super Like.` : ""}
             </p>
+            {top.eliminated ? <p className="text-sm text-chili">{top.explanation}</p> : null}
             {[formatPrice(top.price), formatRating(top.rating), top.address].filter(Boolean).length > 0 ? (
               <p className="text-sm text-ink-soft">
                 {[formatPrice(top.price), formatRating(top.rating), top.address].filter(Boolean).join(" · ")}

@@ -106,9 +106,24 @@ Diversity Selection
 
 `MatchingService`
 
-- `compatibility = likes / total participants`
-- Sort by compatibility, then likes, then rating, then name.
-- The function is isolated so later fairness or travel-time rules can replace it without changing the API.
+Phase 4 ranks the shared deck after everyone has chosen. Gemini does not pick the winner.
+
+Each person can pass, like, super like once, or veto once. A normal like/pass round still uses the original result: four likes out of five is 80%, and a higher rating breaks an equal like count.
+
+Satisfaction is 0 for a pass, 1 for a like, and 2 for a super like. A veto, a known price above the budget, a known distance past the requested radius, or a labeled place that misses a stated diet cannot win. Missing price, distance, or labels are not treated as violations, and a diet label is not an allergy guarantee.
+
+Eligible places sort by the least-satisfied person, then average satisfaction, then super likes, likes, Phase 2 relevance, rating, and restaurant id. The same inputs always produce the same ranking.
+
+```text
+Restaurant A: two Super Likes and three passes
+Restaurant B: five Likes
+```
+
+B wins. A is more exciting for two people, and B is acceptable to everyone.
+
+Explanations are built in Python from counts only. They can say that a place was eliminated by a group veto. They do not name who liked or vetoed it.
+
+The swipe socket still sends `swipe_progress`, `all_completed`, and `results_ready`. Progress adds how many super likes and vetoes have been used, not who used them.
 
 ## Realtime
 
@@ -130,10 +145,11 @@ Progress messages contain counts only. They do not say who liked which restauran
 - `participants` belong to one session.
 - `restaurants` stores normalized places. The same external place can be reused.
 - `session_restaurants` attaches one ordered deck to a session. This join table is what keeps swipe order identical for the group.
-- `swipes` stores `like` or `pass`, with a unique constraint on session, participant, and restaurant.
+- `swipes` stores `pass`, `like`, `super_like`, or `veto`. One row per participant and restaurant. A second unique key allows only one super like and one veto per participant in the room.
+- `sessions.intent_json` keeps the parsed dinner intent so budget, diet, and radius can be enforced again at match time.
 
 `host_participant_id` is stored on the session and checked in the service. It is not a database foreign key, because the session and its host row are created together.
 
 ## Intentionally not built
 
-Vetoes, super-likes, accounts, payments, notifications, vector search, taste memory, travel-time routing, and ElevenLabs are extension points only. They are not part of this MVP.
+Accounts, payments, notifications, vector search, taste memory, travel-time routing, and ElevenLabs are extension points only. They are not part of this MVP.

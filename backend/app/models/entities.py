@@ -22,6 +22,7 @@ class Session(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     room_code: Mapped[str] = mapped_column(String(8), unique=True, index=True, nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
+    intent_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     host_participant_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="lobby", index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
@@ -104,7 +105,16 @@ class Swipe(Base):
             "restaurant_id",
             name="uq_swipes_participant_restaurant",
         ),
-        CheckConstraint("decision IN ('like', 'pass')", name="ck_swipes_decision"),
+        UniqueConstraint(
+            "session_id",
+            "participant_id",
+            "quota_key",
+            name="uq_swipes_participant_quota",
+        ),
+        CheckConstraint(
+            "decision IN ('like', 'pass', 'super_like', 'veto')",
+            name="ck_swipes_decision",
+        ),
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
@@ -119,7 +129,8 @@ class Swipe(Base):
         nullable=False,
         index=True,
     )
-    decision: Mapped[str] = mapped_column(String(8), nullable=False)
+    decision: Mapped[str] = mapped_column(String(16), nullable=False)
+    quota_key: Mapped[str] = mapped_column(String(64), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
 
     session: Mapped[Session] = relationship(back_populates="swipes")

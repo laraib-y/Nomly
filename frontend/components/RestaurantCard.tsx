@@ -42,12 +42,20 @@ export function RestaurantCard({ restaurant }: { restaurant: Restaurant }) {
 
 export function DecisionButtons({
   disabled,
+  superLikeLeft,
+  vetoLeft,
   onPass,
   onLike,
+  onSuperLike,
+  onVeto,
 }: {
   disabled: boolean;
+  superLikeLeft: boolean;
+  vetoLeft: boolean;
   onPass: () => void;
   onLike: () => void;
+  onSuperLike: () => void;
+  onVeto: () => void;
 }) {
   return (
     <div className="mt-5 grid grid-cols-2 gap-3">
@@ -68,6 +76,22 @@ export function DecisionButtons({
       >
         Like
       </motion.button>
+      <button
+        type="button"
+        disabled={disabled || !superLikeLeft}
+        onClick={onSuperLike}
+        className="rounded-full border border-ink/15 bg-card px-5 py-3 disabled:opacity-50"
+      >
+        Super Like
+      </button>
+      <button
+        type="button"
+        disabled={disabled || !vetoLeft}
+        onClick={onVeto}
+        className="rounded-full border border-chili/40 px-5 py-3 text-chili disabled:opacity-50"
+      >
+        Veto
+      </button>
     </div>
   );
 }
