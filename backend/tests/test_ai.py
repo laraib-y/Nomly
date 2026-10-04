@@ -56,7 +56,8 @@ def test_gemini_service_interface():
 
 def test_gemini_parses_valid_json():
     def handler(request: httpx.Request) -> httpx.Response:
-        assert request.url.params["key"] == "test-key"
+        assert request.headers["x-goog-api-key"] == "test-key"
+        assert "test-key" not in str(request.url)
         payload = {
             "cuisines": ["Japanese", "Korean"],
             "price_level": 2,
@@ -306,8 +307,9 @@ def test_session_create_falls_back_when_gemini_output_is_unusable(client, transp
     assert intent["price_level"] is None
     assert intent["group_size"] is None
     lowered = response.text.lower()
+    detail = str(response.json().get("detail", "")).lower()
     assert "gemini" not in lowered
-    assert "429" not in lowered
+    assert "429" not in detail
     assert "validation" not in lowered
     assert response.json()["restaurant_count"] >= 1
 

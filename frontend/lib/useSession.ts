@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { getSession, sessionSocketUrl } from "@/lib/api";
 import type { DinnerSession, LiveEvent, Progress } from "@/types";
 
+const MAX_SOCKET_RETRIES = 8;
+
 export function useSession(roomCode: string, participantId?: string) {
   const [session, setSession] = useState<DinnerSession | null>(null);
   const [progress, setProgress] = useState<Progress | null>(null);
@@ -13,8 +15,13 @@ export function useSession(roomCode: string, participantId?: string) {
   const [eventName, setEventName] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
     const code = roomCode.trim().toUpperCase();
+    if (!code) return;
+
+    let cancelled = false;
+    let socket: WebSocket | null = null;
+    let retry = 0;
+    let retryTimer = 0;
 
     async function reload() {
       try {
@@ -28,38 +35,76 @@ export function useSession(roomCode: string, participantId?: string) {
       }
     }
 
-    void reload();
-    const poll = window.setInterval(() => void reload(), 4000);
-    const socket = new WebSocket(sessionSocketUrl(code, participantId));
+    function connect() {
+      if (cancelled) return;
+      const next = new WebSocket(sessionSocketUrl(code, participantId));
+      socket = next;
 
-    socket.onopen = () => setConnected(true);
-    socket.onclose = () => setConnected(false);
-    socket.onerror = () => setConnected(false);
-    socket.onmessage = (message) => {
-      let event: LiveEvent;
-      try {
-        event = JSON.parse(message.data) as LiveEvent;
-      } catch {
-        return;
-      }
-      setEventName(event.type);
-      if (event.type === "swipe_progress" || event.type === "all_completed") {
-        if (typeof event.finished === "number" && typeof event.total === "number") {
+      next.onopen = () => {
+        if (cancelled || socket !== next) {
+          if (next.readyState === WebSocket.OPEN) next.close();
+          return;
+        }
+        retry = 0;
+        setConnected(true);
+      };
+      next.onerror = () => {
+        if (socket === next) setConnected(false);
+      };
+      next.onclose = (event) => {
+        if (socket !== next) return;
+        setConnected(false);
+        if (cancelled || event.code === 1008 || retry >= MAX_SOCKET_RETRIES) return;
+        const delay = Math.min(500 * 2 ** retry, 5000);
+        retry += 1;
+        retryTimer = window.setTimeout(connect, delay);
+      };
+      next.onmessage = (message) => {
+        if (cancelled || socket !== next) return;
+        let event: LiveEvent;
+        try {
+          event = JSON.parse(message.data) as LiveEvent;
+        } catch {
+          return;
+        }
+        setEventName(event.type);
+        if (event.type === "swipe_progress" || event.type === "all_completed") {
+          if (typeof event.finished === "number" && typeof event.total === "number") {
+            setProgress({ finished: event.finished, total: event.total });
+          }
+        }
+        if (event.type === "state" && event.finished != null && event.total != null) {
           setProgress({ finished: event.finished, total: event.total });
         }
-      }
-      if (event.type === "state" && event.finished != null && event.total != null) {
-        setProgress({ finished: event.finished, total: event.total });
-      }
-      if (["state", "participant_joined", "participant_left", "dinner_started", "results_ready"].includes(event.type)) {
-        void reload();
-      }
-    };
+        if (["state", "participant_joined", "participant_left", "dinner_started", "results_ready"].includes(event.type)) {
+          void reload();
+        }
+      };
+    }
+
+    void reload();
+    const poll = window.setInterval(() => void reload(), 4000);
+    // Wait one turn so a Strict Mode remount can cancel before the handshake starts.
+    const startTimer = window.setTimeout(connect, 0);
 
     return () => {
       cancelled = true;
       window.clearInterval(poll);
-      socket.close();
+      window.clearTimeout(startTimer);
+      window.clearTimeout(retryTimer);
+      const current = socket;
+      socket = null;
+      if (!current) return;
+      if (current.readyState === WebSocket.OPEN) current.close();
+      else if (current.readyState === WebSocket.CONNECTING) {
+        current.addEventListener(
+          "open",
+          () => {
+            current.close();
+          },
+          { once: true },
+        );
+      }
     };
   }, [roomCode, participantId]);
 

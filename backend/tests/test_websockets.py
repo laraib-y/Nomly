@@ -30,6 +30,95 @@ def _run(function):
         raise errors[0]
 
 
+def test_unknown_room_is_rejected(client):
+    with client.websocket_connect("/ws/sessions/ZZZZZZ") as websocket:
+        message = websocket.receive_json()
+        assert message["type"] == "error"
+        assert message["detail"] == "Session not found"
+
+
+def test_invalid_room_code_is_rejected(client):
+    with client.websocket_connect("/ws/sessions/no") as websocket:
+        message = websocket.receive_json()
+        assert message["type"] == "error"
+        assert message["detail"] == "Invalid room code"
+
+
+def test_lowercase_room_code_connects(client):
+    created = create_dinner(client)
+    code = created["room_code"]
+
+    with client.websocket_connect(f"/ws/sessions/{code.lower()}") as websocket:
+        state = websocket.receive_json()
+        assert state["type"] == "state"
+        assert state["room_code"] == code
+        assert state["status"] == "lobby"
+
+
+def test_three_clients_receive_the_same_join(client):
+    created = create_dinner(client)
+    code = created["room_code"]
+
+    with (
+        client.websocket_connect(f"/ws/sessions/{code}") as first,
+        client.websocket_connect(f"/ws/sessions/{code}") as second,
+        client.websocket_connect(f"/ws/sessions/{code}") as third,
+    ):
+        for socket in (first, second, third):
+            state = socket.receive_json()
+            assert state["type"] == "state"
+            assert state["status"] == "lobby"
+
+        def join() -> None:
+            response = client.post(f"/api/sessions/{code}/join", json={"nickname": "Omar"})
+            assert response.status_code == 201, response.text
+
+        _run(join)
+        for socket in (first, second, third):
+            event = _wait_for(socket, "participant_joined")
+            assert event["participant"]["nickname"] == "Omar"
+            assert event["participant_count"] == 2
+            assert "liked" not in str(event)
+
+
+def test_disconnect_leaves_the_other_client_working(client):
+    created = create_dinner(client)
+    code = created["room_code"]
+
+    with client.websocket_connect(f"/ws/sessions/{code}") as watcher:
+        assert watcher.receive_json()["type"] == "state"
+        with client.websocket_connect(f"/ws/sessions/{code}?participant_id=guest-a") as guest:
+            assert guest.receive_json()["type"] == "state"
+        left = _wait_for(watcher, "participant_left")
+        assert left["participant_id"] == "guest-a"
+
+        def join() -> None:
+            response = client.post(f"/api/sessions/{code}/join", json={"nickname": "Sarah"})
+            assert response.status_code == 201, response.text
+
+        _run(join)
+        event = _wait_for(watcher, "participant_joined")
+        assert event["participant"]["nickname"] == "Sarah"
+
+
+def test_reconnect_receives_current_state(client):
+    created = create_dinner(client)
+    code = created["room_code"]
+
+    with client.websocket_connect(f"/ws/sessions/{code}") as first:
+        assert first.receive_json()["status"] == "lobby"
+
+    joined = client.post(f"/api/sessions/{code}/join", json={"nickname": "Sarah"})
+    assert joined.status_code == 201, joined.text
+
+    with client.websocket_connect(f"/ws/sessions/{code}") as second:
+        state = second.receive_json()
+        assert state["type"] == "state"
+        assert state["status"] == "lobby"
+        names = [person["nickname"] for person in state["participants"]]
+        assert names == ["Abdalla", "Sarah"]
+
+
 def test_participant_joined(client):
     created = create_dinner(client)
     code = created["room_code"]

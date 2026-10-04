@@ -13,17 +13,25 @@ class Settings(BaseSettings):
     database_url: str = ""
     gemini_api_key: str = ""
     geoapify_api_key: str = ""
+    embedding_model: str = "gemini-embedding-001"
+    frontend_url: str = ""
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
 
     model_config = SettingsConfigDict(
-        env_file=(".env", "../.env"),
+        # Later files win. The file next to the process overrides the repo-root file,
+        # so a blank GEOAPIFY_API_KEY in ../.env does not erase one set in backend/.env.
+        env_file=("../.env", ".env"),
         env_file_encoding="utf-8",
         extra="ignore",
     )
 
     @property
     def cors_origin_list(self) -> list[str]:
-        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+        origins = [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+        frontend = self.frontend_url.strip()
+        if frontend and frontend not in origins:
+            origins.append(frontend)
+        return origins
 
 
 @lru_cache

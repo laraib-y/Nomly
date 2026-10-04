@@ -23,6 +23,10 @@ AI Intent Parsing
       ↓
 Restaurant Search
       ↓
+Structured Ranking
+      ↓
+Semantic Ranking, when embeddings exist
+      ↓
 Create Room
       ↓
 Friends Join
@@ -170,7 +174,7 @@ From `backend`, with the virtual environment active:
 python -m pytest
 ```
 
-The tests cover sessions, room codes, joining, host authorization, restaurant normalization, deduplication, relevance ranking, deck diversity, mock and Geoapify fallbacks, dinner-intent extraction, Gemini response validation, Gemini failure fallback, swipes, the 80% match case, ranking ties, and WebSocket events. They do not call the live Gemini API.
+The tests cover sessions, room codes, joining, host authorization, restaurant normalization, deduplication, relevance ranking, deck diversity, mock and Geoapify fallbacks, dinner-intent extraction, Gemini response validation, Gemini failure fallback, swipes, the 80% match case, ranking ties, WebSocket events, grounded semantic text, mock embeddings, combined ranking, and semantic fallback. They do not call live Gemini, Geoapify, or TiDB Cloud.
 
 ## Architecture
 
@@ -203,14 +207,18 @@ Deduplication
     ↓
 Hard Constraints
     ↓
-Relevance Ranking
+Structured Ranking
+    ↓
+Semantic Ranking
     ↓
 Diversity Selection
     ↓
 10–15 Restaurant Deck
 ```
 
-The deck is usually 10 to 15 places. If only a few restaurants fit, the room gets those few. Budget and radius are hard limits when the provider actually has that data. Cuisine, rating, and vibe affect the order. The score is cuisine 40, price 25, location 15, rating 15, and category or vibe 5. Dietary labels are a ranking hint only, never a safety claim.
+The deck is usually 10 to 15 places. If only a few restaurants fit, the room gets those few. Budget and radius are hard limits when the provider actually has that data. A stated diet removes a labeled place that misses it when another labeled place satisfies it. Missing labels are kept. That is not an allergy or safety claim. Cuisine, rating, and vibe affect the structured score: cuisine 40, price 25, location 15, rating 15, and category or vibe 5.
+
+Soft preferences such as cozy or quiet are a separate step. The semantic query is the vibe only, so cuisine, budget, and location stay in the structured score. When restaurant embeddings already exist, the final order is 75% structured relevance and 25% normalized cosine similarity. Semantic ranking never puts a filtered restaurant back into the deck. If embeddings are missing, the embedding API fails, or TiDB vector search fails, the deck stays on the structured ranking and the room is still created.
 
 `backend/app/services/matching/matching_service.py` ranks a finished room.
 
@@ -225,21 +233,40 @@ Restaurants are fetched once when the room is created and reused for every swipe
 | Variable | Where it is used | Required |
 | --- | --- | --- |
 | `DATABASE_URL` | Backend, MySQL or TiDB | Yes |
-| `GEMINI_API_KEY` | Backend only | No |
+| `GEMINI_API_KEY` | Backend only. Intent parsing and embeddings | No |
 | `GEOAPIFY_API_KEY` | Backend only | No |
+| `EMBEDDING_MODEL` | Backend only. Defaults to `gemini-embedding-001` | No |
+| `FRONTEND_URL` | Backend CORS for a deployed frontend | No |
 | `NEXT_PUBLIC_API_URL` | Frontend | No, defaults to `http://localhost:8000` |
 | `CORS_ORIGINS` | Backend | No |
 
-`.env.example` lists them. `.env` is gitignored.
+`.env.example` lists them. `.env` is gitignored. Do not create `NEXT_PUBLIC_` copies of the Gemini, Geoapify, or database credentials.
+
+## TiDB and embeddings
+
+TiDB Cloud is the production MySQL-compatible database. The same `restaurants` table stores a grounded description, a hash of that description, a JSON embedding, and, on TiDB, a `VECTOR(768)` column. There is no second restaurant database.
+
+From `backend`, with `DATABASE_URL` set:
+
+```bash
+python -m alembic upgrade head
+python -m app.services.restaurants.refresh_embeddings
+```
+
+`upgrade head` adds the semantic columns. On a TiDB server it also adds the vector column and a cosine index. Downgrade removes only those columns.
+
+The refresh command embeds restaurants whose text is missing or whose hash changed, and it skips the rest. Room creation does not embed the catalog. It embeds the vibe only when at least one candidate already has a vector.
+
+Local MySQL and the test database do not need the vector column. They use the JSON embedding when it exists, and otherwise keep Phase 2 ranking. Leave `GEMINI_API_KEY` blank to use deterministic mock embeddings for that refresh.
+
+Similarity is cosine. TiDB returns `VEC_COSINE_DISTANCE`, which is `1 - cosine`. Nomly maps cosine from [-1, 1] to [0, 1] before blending. The browser never receives vectors or raw similarity.
 
 ## Future roadmap
 
 These are deliberately not in the MVP. The service boundaries are there so they can be added later:
 
-- One veto and one super-like per person, plus fairer preference weighting
 - Ranked choice, consensus scoring, and richer tie breaks
 - Meet-in-the-middle routing based on travel time
-- Review embeddings and TiDB Vector Search for vibes such as cozy, quiet, or good for groups
 - Anonymous taste memory across sessions
 - An ElevenLabs voice concierge
 - Richer Gemini explanations
